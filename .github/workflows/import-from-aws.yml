@@ -1,0 +1,51 @@
+# Copies the built cohesync.com site from the old AWS server (EC2 13.216.4.43) into this repo.
+# Run once (it runs automatically when this file is committed). Safe to delete afterwards.
+name: Import site from AWS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/import-from-aws.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built site from the EC2 server
+        run: |
+          set -euo pipefail
+          # --resolve pins cohesync.com to the old server, so this works even after DNS moves to GitHub Pages
+          PIN="--resolve cohesync.com:443:13.216.4.43"
+          FILES="index.html favicon.ico favicon.svg favicon-32x32.png favicon-16x16.png apple-touch-icon.png
+                 assets/index-BO81KM3M.js assets/index-NqS5JXKp.css
+                 assets/cohesync-logo-BFzKqV-e.png assets/cohesync-logo-light-vQTHpqTs.png
+                 assets/hero-office-C8irZ9CH.png assets/product-wpm-CP2G1U-N.png
+                 assets/product-psa-NqVS-dJc.png assets/cannonball-logo-ZMQUGRfx.png"
+          mkdir -p assets
+          for f in $FILES; do
+            url="https://cohesync.com/$f"
+            [ "$f" = "index.html" ] && url="https://cohesync.com/"
+            curl -fsS $PIN -o "$f" "$url"
+            echo "$f  $(wc -c < "$f") bytes"
+          done
+          # Sanity check: non-HTML files must not be the SPA fallback page
+          for f in $FILES; do
+            if [ "$f" != "index.html" ] && grep -q 'id="root"' "$f" 2>/dev/null; then
+              echo "ERROR: $f came back as the HTML fallback page"; exit 1
+            fi
+          done
+          touch .nojekyll
+
+      - name: Commit files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import built cohesync.com site from AWS EC2" || echo "Nothing to commit"
+          git push
