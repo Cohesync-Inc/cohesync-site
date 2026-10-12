@@ -1,4 +1,4 @@
-// cohesync.com — page behaviour (mobile menu, services tabs, contact form).
+// cohesync.com — page behaviour (mobile menu, contact form, footer year).
 // Plain JavaScript, no build step. Loaded with `defer` from index.html.
 
 // Where the contact form sends messages. This is the public contact endpoint on
@@ -34,24 +34,6 @@ const CONTACT_ENDPOINT = "https://aura.worklynq.cohesync.net/api/v1/public/conta
   window.addEventListener("resize", () => {
     if (!nav.hidden && window.matchMedia("(min-width: 768px)").matches) setOpen(false);
   });
-})();
-
-/* ---------- Services tabs ---------- */
-(function servicesTabs() {
-  const tabs = Array.from(document.querySelectorAll('.services-tabs [role="tab"]'));
-  if (!tabs.length) return;
-
-  function select(tab) {
-    tabs.forEach((t) => {
-      const active = t === tab;
-      t.setAttribute("aria-selected", String(active));
-      t.classList.toggle("services-tab--active", active);
-      const panel = document.getElementById(t.getAttribute("aria-controls"));
-      if (panel) panel.hidden = !active;
-    });
-  }
-
-  tabs.forEach((t) => t.addEventListener("click", () => select(t)));
 })();
 
 /* ---------- Contact form ---------- */

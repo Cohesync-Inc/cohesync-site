@@ -6,9 +6,9 @@ The Cohesync company website. Plain HTML, CSS and JavaScript — no build step, 
 
 | File | What it is |
 |---|---|
-| `index.html` | All page content, top to bottom: header, hero, products (WPM / PSA), services (Cannonball Digital Works tabs), vision, philosophy, manifesto, contact, footer. Each part is a `<section>` with an `id` you can search for. |
-| `styles.css` | All styling. Mostly short utility classes plus named component classes (`.section-hero`, `.services-tab`, `.contact-form-card`, …). |
-| `script.js` | The only behaviour on the page: mobile menu, services tabs, contact form, footer year. |
+| `index.html` | All page content, top to bottom: header, hero, products (WPM / PSA), vision, philosophy, manifesto, contact, footer. Each part is a `<section>` with an `id` you can search for. |
+| `styles.css` | All styling. Mostly short utility classes plus named component classes (`.section-hero`, `.product-card`, `.contact-form-card`, …). |
+| `script.js` | The only behaviour on the page: mobile menu, contact form, footer year. |
 | `assets/` | Logos, hero and product images. |
 | `CNAME` | Tells GitHub Pages to serve this site at cohesync.com. Don't delete it. |
 | `.nojekyll` | Tells GitHub Pages to serve files exactly as they are. |
@@ -21,7 +21,6 @@ The Cohesync company website. Plain HTML, CSS and JavaScript — no build step, 
 
 Common edits:
 - **Text:** search `index.html` for the sentence and change it.
-- **Services tabs:** each tab is a `<button role="tab">` in `.services-tabs`, paired with a `<div class="services-panel" id="panel-…">`. Add or remove both together; the tab's `aria-controls` must match the panel's `id`. Only the first panel is visible by default (the others carry `hidden`).
 - **Images:** drop the file in `assets/` and point the `<img src>` at it.
 
 ## Contact form
@@ -30,4 +29,4 @@ The form posts to the Worklynq app's public contact endpoint, set once at the to
 
 ## History
 
-The site was originally a React/Vite app built and hosted on an AWS EC2 server (`13.216.4.43`) by the previous contractor; only the compiled output was recovered (commit "Import built cohesync.com site from AWS EC2"). In October 2026 it was rebuilt from that output into this plain source and checked against the original: identical rendering at desktop and phone widths, and identical tab, menu and contact-form behaviour.
+The site was originally a React/Vite app built and hosted on an AWS EC2 server (`13.216.4.43`) by the previous contractor; only the compiled output was recovered (commit "Import built cohesync.com site from AWS EC2"). In October 2026 it was rebuilt from that output into this plain source and checked against the original: identical rendering at desktop and phone widths, and identical tab, menu and contact-form behaviour. The Cannonball Digital Works services section was removed afterwards (October 2026).
