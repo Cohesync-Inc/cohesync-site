@@ -1,4 +1,4 @@
-// cohesync.com — page behaviour (mobile menu, contact form, footer year).
+// cohesync.com — page behaviour (mobile menu, Worklynq feature carousel, contact form, footer year).
 // Plain JavaScript, no build step. Loaded with `defer` from index.html.
 
 // Where the contact form sends messages. This is the public contact endpoint on
@@ -34,6 +34,32 @@ const CONTACT_ENDPOINT = "https://aura.worklynq.cohesync.net/api/v1/public/conta
   window.addEventListener("resize", () => {
     if (!nav.hidden && window.matchMedia("(min-width: 768px)").matches) setOpen(false);
   });
+})();
+
+/* ---------- Worklynq feature carousel ---------- */
+(function featureCarousel() {
+  const track = document.querySelector(".feature-carousel-track");
+  if (!track) return;
+  const prev = document.querySelector(".feature-carousel-prev");
+  const next = document.querySelector(".feature-carousel-next");
+
+  function step() {
+    const card = track.querySelector(".feature-card");
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 24;
+    return card ? card.getBoundingClientRect().width + gap : track.clientWidth * 0.8;
+  }
+
+  function update() {
+    const max = track.scrollWidth - track.clientWidth;
+    prev.disabled = track.scrollLeft <= 8;
+    next.disabled = track.scrollLeft >= max - 8;
+  }
+
+  prev.addEventListener("click", () => track.scrollBy({ left: -step() }));
+  next.addEventListener("click", () => track.scrollBy({ left: step() }));
+  track.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
 })();
 
 /* ---------- Contact form ---------- */
