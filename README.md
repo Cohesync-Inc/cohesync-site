@@ -19,6 +19,8 @@ The Cohesync company website. Plain HTML, CSS and JavaScript — no build step, 
 2. To check locally, run `python3 -m http.server` in this folder and open http://localhost:8000.
 3. Commit to `main`. GitHub Pages republishes in a minute or two.
 
+**When you change `styles.css` or `script.js`,** also update the `?v=` date on their two links near the top of `index.html` (e.g. `styles.css?v=2026-10-12` → `styles.css?v=2026-11-03`). Browsers keep their copies of these files for a few minutes; changing the version makes visitors fetch the new ones right away instead of seeing new page content with old styling.
+
 Common edits:
 - **Text:** search `index.html` for the sentence and change it.
 - **Images:** drop the file in `assets/` and point the `<img src>` at it.
