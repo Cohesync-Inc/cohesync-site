@@ -25,7 +25,9 @@ Common edits:
 
 ## Contact form
 
-The form posts to the Worklynq app's public contact endpoint, set once at the top of `script.js` (`CONTACT_ENDPOINT`). Today that is `https://aura.worklynq.cohesync.net/api/v1/public/contact`, on the old Worklynq instance. If that instance is down, or its database is stopped, visitors see "Could not send your message". Update the constant when the endpoint moves.
+Messages from the contact form are **emailed to darvesh.taneja@cohesync.com** via [FormSubmit](https://formsubmit.co), a free form-to-email service. The address is set once at the top of `script.js` (`CONTACT_EMAIL`). Each email has the subject "Cohesync website enquiry: ‹name› (‹company›)", a table of the fields, and Reply-To set to the visitor's address.
+
+**One-time activation:** the first message ever sent from cohesync.com triggers an "Activate Form" email from FormSubmit to that address. Click it once; until then messages are not delivered and visitors see "Could not send your message". After activation FormSubmit emails a random-string alias, which can replace the address in `CONTACT_EMAIL` to keep it out of the page source.
 
 ## History
 

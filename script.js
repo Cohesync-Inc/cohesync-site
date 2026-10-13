@@ -1,9 +1,16 @@
 // cohesync.com — page behaviour (mobile menu, Worklynq feature carousel, contact form, footer year).
 // Plain JavaScript, no build step. Loaded with `defer` from index.html.
 
-// Where the contact form sends messages. This is the public contact endpoint on
-// the Worklynq app (the old instance); change it here if that endpoint moves.
-const CONTACT_ENDPOINT = "https://aura.worklynq.cohesync.net/api/v1/public/contact";
+// Where contact-form messages go: each one is emailed to CONTACT_EMAIL via FormSubmit
+// (formsubmit.co), a free form-to-email service — no server needed.
+//
+// One-time setup: the FIRST message sent from cohesync.com triggers a "Confirm your
+// email / Activate Form" email from FormSubmit to CONTACT_EMAIL. Click it once; from
+// then on every message arrives as an email (Reply-To is the visitor's address).
+// After activation FormSubmit also emails a random-string alias: put it in
+// CONTACT_EMAIL instead of the address to keep the address out of the page source.
+const CONTACT_EMAIL = "darvesh.taneja@cohesync.com";
+const CONTACT_ENDPOINT = "https://formsubmit.co/ajax/" + CONTACT_EMAIL;
 
 /* ---------- Mobile menu ---------- */
 (function mobileMenu() {
@@ -92,11 +99,16 @@ const CONTACT_ENDPOINT = "https://aura.worklynq.cohesync.net/api/v1/public/conta
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          company: data.company || undefined,
-          message: data.message,
-          website: data.website || "", // honeypot: real visitors leave this empty
+          Name: data.name,
+          Company: data.company || "—",
+          Email: data.email,
+          Message: data.message,
+          "Sent from": "cohesync.com — Contact form",
+          _replyto: data.email,
+          _subject: "Cohesync website enquiry: " + data.name + (data.company ? " (" + data.company + ")" : ""),
+          _template: "table",
+          _captcha: "false",
+          _honey: data.website || "", // honeypot: real visitors leave this empty
         }),
       });
       let body = {};
@@ -105,14 +117,14 @@ const CONTACT_ENDPOINT = "https://aura.worklynq.cohesync.net/api/v1/public/conta
       } catch {
         body = {};
       }
-      if (!res.ok || body.success === false) {
+      // FormSubmit returns success as the string "true"/"false"
+      if (!res.ok || String(body.success) !== "true") {
         return {
           ok: false,
           message:
-            body.message ||
-            (res.status === 429
+            res.status === 429
               ? "Too many requests. Please try again in a few minutes."
-              : "Could not send your message. Please try again."),
+              : "Could not send your message. Please try again in a moment.",
         };
       }
       return { ok: true };
