@@ -1076,12 +1076,6 @@ video {
   .product-brand-divider {
     display: none;
   }
-  .product-card-head {
-    padding: 16px 20px 0;
-  }
-  .product-card-body {
-    padding: 16px 20px 20px;
-  }
   .philosophy-workflow-steps {
     flex-direction: column;
     align-items: center;
@@ -1485,200 +1479,6 @@ video {
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 28px;
-  }
-}
-.product-card {
-  background: #fff;
-  border: 1px solid #e8ecea;
-  border-radius: 16px;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  display: flex;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8px 32px #0028280f;
-}
-.product-card-accent {
-  background: linear-gradient(90deg, #d4a017, #e8c07d);
-  width: 100%;
-  height: 4px;
-}
-.product-card-accent--psa {
-  background: linear-gradient(90deg, #d4a017, #e8c07d);
-}
-.product-card-head {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-  padding: 20px 24px 0;
-  display: flex;
-}
-.product-card-head-row {
-  width: 100%;
-  min-height: var(--product-mark-height);
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  display: flex;
-}
-.product-logo-shell {
-  background: #050807;
-  border-radius: 10px;
-  flex-shrink: 0;
-  justify-content: center;
-  align-items: center;
-  padding: 8px 14px;
-  line-height: 0;
-  display: inline-flex;
-}
-.product-logo-shell--brand {
-  border-radius: 12px;
-  padding: 12px 18px;
-}
-.product-logo-shell .product-logo-mark,
-.product-logo-shell .worklynq-logo {
-  display: block;
-}
-.product-logo-mark {
-  background: 0 0;
-  flex-shrink: 0;
-  width: auto;
-  max-width: 100%;
-  display: block;
-}
-.product-logo-mark--psa {
-  height: var(--product-mark-height);
-  width: auto;
-}
-.product-logo-mark--wpm {
-  height: calc(var(--product-mark-height) * 30 / 42);
-  width: auto;
-}
-.product-card-tagline {
-  min-height: 2.7em;
-  font-family: var(--font-sans);
-  color: var(--color-brand-900);
-  margin: 16px 0 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-.product-card-head-main {
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  display: flex;
-}
-.product-card-icon {
-  background: var(--color-brand-900);
-  color: #fff;
-  border-radius: 12px;
-  flex-shrink: 0;
-  justify-content: center;
-  align-items: center;
-  width: 44px;
-  height: 44px;
-  display: flex;
-}
-.product-card-name {
-  color: var(--color-ink);
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.product-badge {
-  white-space: nowrap;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  padding: 6px 14px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.product-badge--dev {
-  color: #b45309;
-  background: #fef3c7;
-}
-.product-badge--soon {
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
-}
-.product-card-body {
-  flex-direction: column;
-  flex: auto;
-  padding: 16px 24px 20px;
-  display: flex;
-}
-.product-card-desc {
-  color: #6b7280;
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.65;
-}
-.product-card-type {
-  color: #9ca3af;
-  border-bottom: 1px solid #eef1ef;
-  min-height: 1.4em;
-  margin: 8px 0 0;
-  padding-bottom: 14px;
-  font-size: 13px;
-}
-.product-features {
-  grid-template-columns: 1fr;
-  gap: 10px 20px;
-  margin: auto 0 0;
-  padding: 20px 0 0;
-  list-style: none;
-  display: grid;
-}
-@media (width>=480px) {
-  .product-features {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-.product-feature-item {
-  color: #4b5563;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13px;
-  line-height: 1.45;
-  display: flex;
-}
-.check-icon--product {
-  background: var(--color-brand-100);
-  width: 18px;
-  height: 18px;
-  color: var(--color-brand-700);
-  margin-top: 1px;
-}
-.product-card-image {
-  object-fit: cover;
-  object-position: center;
-  border-bottom-right-radius: 16px;
-  border-bottom-left-radius: 16px;
-  flex-shrink: 0;
-  width: 100%;
-  height: 200px;
-  margin-top: auto;
-  display: block;
-}
-.product-card-image--wpm {
-  object-position: 42% center;
-}
-.product-card-image--psa {
-  object-position: 50% center;
-}
-@media (width>=768px) {
-  .product-card-image {
-    height: 220px;
-  }
-}
-@media (width>=1024px) {
-  .product-card-image {
-    height: 240px;
   }
 }
 .product-brand-banners {
@@ -2954,4 +2754,115 @@ video {
 @property --tw-drop-shadow-size {
   syntax: "*";
   inherits: false;
+}
+
+/* Worklynq feature cards — horizontal scrolling carousel (products section) */
+.section-products .section-intro + .feature-carousel {
+  margin-top: var(--spacing-after-intro);
+}
+.feature-carousel {
+  position: relative;
+  width: 100%;
+}
+.feature-carousel-track {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 4px;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  padding: 8px 4px 28px;
+  margin: -8px -4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-brand-400) transparent;
+}
+.feature-carousel-track:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.feature-card {
+  flex: 0 0 min(340px, 84%);
+  scroll-snap-align: start;
+  background: #fff;
+  border: 1px solid #e8ecea;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px #0028280f;
+}
+.feature-card-accent {
+  background: linear-gradient(90deg, #d4a017, #e8c07d);
+  width: 100%;
+  height: 4px;
+  flex-shrink: 0;
+}
+.feature-card-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--color-brand-50);
+  display: block;
+}
+.feature-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px 28px;
+}
+.feature-card-title {
+  font-family: var(--font-sans);
+  color: var(--color-brand-900);
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.feature-card-desc {
+  color: #6b7280;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+.feature-carousel-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.feature-carousel-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #d5ddd9;
+  background: #fff;
+  color: var(--color-brand-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.feature-carousel-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.feature-carousel-btn:hover:not(:disabled) {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-400);
+}
+.feature-carousel-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.feature-carousel-btn:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .feature-carousel-track {
+    scroll-behavior: auto;
+  }
 }
