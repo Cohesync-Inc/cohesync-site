@@ -294,12 +294,41 @@
       .bring.ai .chips li { border-color: var(--sand-line); }
       .together { display: flex; flex-direction: column; gap: 20px; }
       .together h3 { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--ink); }
-      .steps { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-      .steps li { border-radius: 12px; padding: 20px 24px; background: var(--ink); color: var(--white); }
-      .steps li.ai { background: var(--gold); color: var(--ink-deep); }
-      .step-num { font-size: 14px; font-weight: 600; color: var(--gold); }
-      .steps li.ai .step-num { color: #4a3608; }
-      .step-name { font-family: var(--display); font-weight: 700; font-size: 20px; }
+      .flow {
+        margin: 0;
+        padding: 32px 24px;
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 16px 4px;
+        background: var(--bg);
+        border-radius: 12px;
+      }
+      .flow li { display: flex; align-items: flex-start; gap: 4px; }
+      .flow-step { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 120px; }
+      .flow-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        line-height: 1;
+      }
+      .flow-icon.mint { background: #e8f3ef; }
+      .flow-icon.pink { background: #fce4ec; }
+      .flow-icon.forest { background: #2d5a4c; }
+      .flow-label { font-size: 16px; font-weight: 600; line-height: 1.3; text-align: center; color: var(--ink); }
+      .flow-label.human { color: #2d5a4c; }
+      .flow-arrow { flex-shrink: 0; width: 18px; height: 18px; margin: 23px 4px 0 2px; color: #c4ccc9; }
+      @media (max-width: 640px) {
+        .flow { flex-direction: column; align-items: center; }
+        .flow li { flex-direction: column; align-items: center; }
+        .flow-arrow { margin: 6px 0 0; transform: rotate(90deg); }
+      }
       .together-close { font-size: 20px; font-weight: 600; color: var(--ink); }
 
       /* ---------- The name ---------- */
@@ -578,11 +607,22 @@
           </div>
           <div class="together">
             <h3>How it works together</h3>
-            <ol class="steps">
-              <li><div class="step-num">01 · Human</div><div class="step-name">Intent</div></li>
-              <li class="ai"><div class="step-num">02 · AI</div><div class="step-name">Assistance</div></li>
-              <li><div class="step-num">03 · Human</div><div class="step-name">Judgment</div></li>
-              <li class="ai"><div class="step-num">04 · AI</div><div class="step-name">Execution, where appropriate</div></li>
+            <ol class="flow">
+              <li>
+                <div class="flow-step"><span class="flow-icon mint" aria-hidden="true">💡</span><span class="flow-label human">Human Intent</span></div>
+                <svg class="flow-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+              </li>
+              <li>
+                <div class="flow-step"><span class="flow-icon forest" aria-hidden="true">🤖</span><span class="flow-label">AI Assistance</span></div>
+                <svg class="flow-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+              </li>
+              <li>
+                <div class="flow-step"><span class="flow-icon pink" aria-hidden="true">🧠</span><span class="flow-label human">Human Judgment</span></div>
+                <svg class="flow-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+              </li>
+              <li>
+                <div class="flow-step"><span class="flow-icon forest" aria-hidden="true">⚡</span><span class="flow-label">AI Execution</span></div>
+              </li>
             </ol>
             <p class="together-close">Humans set direction. AI extends capacity. People stay accountable.</p>
           </div>
