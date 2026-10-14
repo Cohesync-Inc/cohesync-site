@@ -346,7 +346,6 @@
       .founder-photo { flex: 1 1 320px; min-width: 0; max-width: 420px; margin: 0; display: flex; flex-direction: column; gap: 16px; }
       .founder-photo img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 50% 30%; border-radius: 16px; }
       .founder-name { font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--ink); }
-      .founder-title { font-size: 16px; color: var(--muted); }
       .founder-story { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
       .founder-story .h2 { margin-bottom: 8px; }
       .founder-story p:not(.eyebrow) { color: var(--text-2); }
@@ -354,7 +353,7 @@
 
       /* ---------- Manifesto ---------- */
       .manifesto { background: var(--ink-deep); color: var(--white); }
-      .manifesto .wrap { max-width: 880px; padding-top: 112px; padding-bottom: 112px; display: flex; flex-direction: column; gap: 24px; }
+      .manifesto .wrap { max-width: 960px; padding-top: 112px; padding-bottom: 112px; display: flex; flex-direction: column; gap: 24px; }
       .manifesto h2 {
         margin-bottom: 16px;
         font-family: var(--display);
@@ -363,9 +362,35 @@
         line-height: 1.05;
         letter-spacing: -0.02em;
       }
-      .manifesto-body { font-size: 20px; color: var(--on-dark); }
-      .manifesto-chant { margin-top: 16px !important; font-family: var(--display); font-weight: 700; font-size: 24px; color: var(--gold); }
-      .manifesto-sign { font-family: var(--display); font-weight: 800; font-size: 28px; color: var(--white); }
+      .manifesto-accent { display: block; color: var(--gold); }
+      .manifesto-text { display: flex; flex-direction: column; gap: 20px; padding-left: 24px; border-left: 2px solid #2a4a43; }
+      .manifesto-text p { font-size: 20px; color: var(--on-dark); }
+      .manifesto-text .manifesto-lead { font-weight: 600; color: var(--white); }
+      .manifesto-quote {
+        margin: 4px 0;
+        padding: 24px 28px;
+        border-left: 4px solid var(--gold);
+        border-radius: 0 12px 12px 0;
+        background: var(--ink-panel);
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: var(--white);
+      }
+      .manifesto-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+      .manifesto-card { background: var(--ink-panel); border-radius: 12px; padding: 24px; }
+      .manifesto-card h3 { font-family: var(--display); font-weight: 700; font-size: 19px; line-height: 1.3; color: var(--white); margin-bottom: 8px; }
+      .manifesto-card p { font-size: 16px; color: var(--on-dark-2); }
+      .manifesto-closing { margin-top: 16px !important; font-size: 20px; text-align: center; color: var(--on-dark); }
+      .manifesto-commit { margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+      .manifesto-commit-line { font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--gold); }
+      .manifesto-sign { font-family: var(--display); font-weight: 800; font-size: 32px; color: var(--white); }
+      .manifesto-tagline { font-size: 17px; color: var(--on-dark-2); }
+      @media (max-width: 600px) {
+        .manifesto-text { padding-left: 16px; }
+        .manifesto-quote { padding: 20px; font-size: 19px; }
+      }
 
       /* ---------- Contact ---------- */
       .contact .wrap { padding-top: 96px; padding-bottom: 96px; display: flex; flex-wrap: wrap; gap: 48px 72px; align-items: flex-start; }
@@ -651,7 +676,6 @@
             <img src="assets/darvesh-taneja.jpg" alt="Darvesh Taneja, founder of Cohesync" width="895" height="1024" loading="lazy" />
             <figcaption>
               <div class="founder-name">Darvesh Taneja</div>
-              <div class="founder-title">Founder, Cohesync</div>
             </figcaption>
           </figure>
           <div class="founder-story">
@@ -689,22 +713,40 @@
       <section class="manifesto on-dark" id="manifesto" aria-labelledby="manifesto-h">
         <div class="wrap">
           <p class="eyebrow">Manifesto</p>
-          <h2 id="manifesto-h">Where Humans and AI Thrive Together</h2>
-          <p class="manifesto-body">
-            We believe the next leap forward won't be defined by artificial intelligence alone. It will be defined by
-            what people and AI do together.
-          </p>
-          <p class="manifesto-body">
-            Technology should remove barriers, not create them. It should connect people, not isolate them. And it
-            should reach the businesses that need it most, not just the ones that build it.
-          </p>
-          <p class="manifesto-body">AI should amplify human curiosity, creativity, judgment, and compassion, never replace them.</p>
-          <p class="manifesto-body">
-            We picture a future where knowledge isn't lost, decisions are made with confidence, and work becomes
-            meaningful instead of repetitive, whether that's in an office, on a shop floor, or on a job site.
-          </p>
-          <p class="manifesto-chant">Learning together. Solving together. Growing together. Thriving together.</p>
-          <p class="manifesto-sign">This is Cohesync.</p>
+          <h2 id="manifesto-h">Where Humans and AI <span class="manifesto-accent">Thrive Together</span></h2>
+          <div class="manifesto-text">
+            <p class="manifesto-lead">We believe the next great leap forward won't be defined by artificial intelligence alone.</p>
+            <p>
+              We are entering an era where humanity and AI must work together — not to simply process information, but
+              to truly <em>understand</em> it, act on it, and create from it.
+            </p>
+            <p>AI should amplify human curiosity, creativity, judgment, and compassion — never replace them.</p>
+            <blockquote class="manifesto-quote">
+              “A future where organizations spend less time searching for information and more time creating it. Where
+              knowledge is never lost.”
+            </blockquote>
+            <p>We envision a future where AI reduces complexity, removes friction, and makes work meaningful instead of repetitive.</p>
+          </div>
+          <div class="manifesto-cards">
+            <div class="manifesto-card">
+              <h3>Technology should remove barriers</h3>
+              <p>Not create them. Connect people — not isolate them.</p>
+            </div>
+            <div class="manifesto-card">
+              <h3>Not Human versus AI</h3>
+              <p>It's Human and AI. Learning together. Solving together.</p>
+            </div>
+            <div class="manifesto-card">
+              <h3>Unlock full potential</h3>
+              <p>For every individual, every organization, and society.</p>
+            </div>
+          </div>
+          <p class="manifesto-closing">That future begins with collaboration. Growing together. Thriving together. This is why Cohesync exists.</p>
+          <div class="manifesto-commit">
+            <p class="manifesto-commit-line">This is our commitment.</p>
+            <p class="manifesto-sign">This is Cohesync.</p>
+            <p class="manifesto-tagline">Where Humans and AI Thrive Together.</p>
+          </div>
         </div>
       </section>
 
