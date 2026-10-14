@@ -8,7 +8,7 @@ The Cohesync company website. One plain HTML page — no build step, no framewor
 |---|---|
 | `index.html` | The whole page: styles in the `<style>` block at the top (colors are CSS variables in `:root`), then header, hero, mission, Worklynq, philosophy, the name, founder, manifesto, contact and footer, then the small `<script>` (mobile menu, contact form, footer year). Each part is a `<section>` with an `id` you can search for. |
 | `assets/` | The Cohesync logo mark and the founder photo. The hero photo is loaded from Unsplash (free license). |
-| `favicon*`, `apple-touch-icon.png` | Browser tab and home-screen icons. |
+| `icons/`, `favicon.ico` | Browser tab and home-screen icons (the Cohesync puzzle-piece mark). |
 | `CNAME` | Tells GitHub Pages to serve this site at cohesync.com. Don't delete it. |
 | `.nojekyll` | Tells GitHub Pages to serve files exactly as they are. |
 
