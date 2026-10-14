@@ -463,6 +463,24 @@
       .footer-col a { color: var(--footer-text); }
       .footer-col a:hover { color: var(--white); }
       .legal { padding-top: 24px; border-top: 1px solid #1e3b35; font-size: 14px; color: #a9c7c0; }
+
+      /* ---------- Phones: center-align the page ---------- */
+      @media (max-width: 640px) {
+        .hero-copy, .split, .card, .wq-main, .wq-side, .philosophy-head, .bring, .name .wrap,
+        .founder-story, .manifesto .wrap, .contact-intro, .footer-cols { text-align: center; }
+        .btn-row, .stats, .chips { justify-content: center; }
+        .hero-sub, .philosophy-head p:last-child { margin-left: auto; margin-right: auto; }
+        .card, .wq-main, .wq-side, .founder-story, .contact-intro { align-items: center; }
+        .wq-logo { margin: 0 auto; }
+        .pill { align-self: center; }
+        .wq-tiles { width: 100%; }
+        .founder-photo { margin: 0 auto; }
+        .founder-story .btn { align-self: center; }
+        .manifesto-text { padding-left: 0; border-left: 0; }
+        .manifesto-quote { border-left: 0; border-top: 4px solid var(--gold); border-radius: 12px; }
+        .option { width: 100%; text-align: left; }
+        .footer-brand, .footer-col { align-items: center; }
+      }
     </style>
   </head>
   <body>
