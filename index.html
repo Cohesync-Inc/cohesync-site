@@ -923,7 +923,7 @@
                 <button type="button" class="wx-icon-btn wx-mute" data-wx="mute" aria-label="Mute music" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="wx-wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="wx-x" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
                 <button type="button" class="wx-play-btn" data-wx="play" aria-label="Play the walkthrough with music"><span class="wx-play" aria-hidden="true"></span><span class="wx-play-label">Play</span></button>
               </div>
-              <audio class="wx-audio" preload="none" src="assets/worklynq-tour-26s.mp3"></audio>
+              <audio class="wx-audio" preload="none" src="assets/worklynq-tour-128bpm.mp3"></audio>
             </div>
 
             <div class="wx-tabs" role="tablist" aria-label="Worklynq walkthrough">
@@ -1375,7 +1375,7 @@
     <script>
       /* Explore Worklynq: interactive walkthrough.
          Visitors can click through freely; "Play" runs the full scripted tour
-         (every interaction, in order, about 26 seconds) with background music. */
+         (every interaction, in order, about 26 seconds at 128 BPM) with background music. */
       (function () {
         var root = document.getElementById("explore-worklynq");
         if (!root) return;
@@ -1383,7 +1383,8 @@
         var $$ = function (s, el) { return [].slice.call((el || root).querySelectorAll(s)); };
         var tabs = $$('[role="tab"]'), scenes = $$(".wx-scene");
         var playBtn = $('[data-wx="play"]'), muteBtn = $('[data-wx="mute"]'), audio = $(".wx-audio");
-        var DURS = [5500, 6000, 5000, 5500, 4000], STARTS = [0];
+        /* 128 BPM: one bar = 1875ms. Scenes are 3, 3, 3, 3 and 2 bars so every change lands on a downbeat. */
+        var DURS = [5625, 5625, 5625, 5625, 3750], STARTS = [0];
         for (var d = 1; d < DURS.length; d++) STARTS[d] = STARTS[d - 1] + DURS[d - 1];
         var cur = 0, playing = false, finished = false, elapsed = 0, last = 0, fired = 0, vol = 0, VOL = 0.75;
 
@@ -1444,12 +1445,12 @@
 
         /* ---------- the scripted tour: [ms into scene, action] ---------- */
         var TL = [
-          [[0, function () { setConnected(false); hotChip(-1); }], [700, function () { setConnected(true); }]],
-          [150, 1550, 2950, 4350].map(function (t, i) { return [t, function () { pickArea(i); }]; }),
+          [[0, function () { setConnected(false); hotChip(-1); }], [469, function () { setConnected(true); }]],
+          [0, 1406, 2813, 4219].map(function (t, i) { return [t, function () { pickArea(i); }]; }),
           [],
           [],
-          [[500, function () { hot(ctaBtns[0], ctaBtns); }], [1400, function () { hot(ctaBtns[1], ctaBtns); }],
-           [2300, function () { hot(ctaBtns[2], ctaBtns); }]]
+          [[469, function () { hot(ctaBtns[0], ctaBtns); }], [1406, function () { hot(ctaBtns[1], ctaBtns); }],
+           [2344, function () { hot(ctaBtns[2], ctaBtns); }]]
         ];
 
         /* ---------- navigation ---------- */
