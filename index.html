@@ -1464,8 +1464,8 @@
           });
           tabs.forEach(function (t, i) {
             t.setAttribute("aria-selected", i === cur ? "true" : "false"); t.tabIndex = i === cur ? 0 : -1;
-            $(".wx-bar i", t).style.width = i < cur ? "100%" : "0";
           });
+          paintBars();
           elapsed = 0; fired = 0;
           clearHot(ctaBtns); hotChip(-1);
           if (cur === 0 && !playing) setConnected(false);   /* fresh scattered state on every visit */
@@ -1475,6 +1475,13 @@
           var sc = scenes[cur]; void sc.offsetWidth;
           requestAnimationFrame(function () { sc.classList.add("is-in"); });
         }
+        /* bars: earlier tabs and the current tab are lit; while the tour plays,
+           the current tab's bar fills up instead */
+        function paintBars() {
+          tabs.forEach(function (t, i) {
+            $(".wx-bar i", t).style.width = i < cur || (i === cur && !playing) ? "100%" : "0";
+          });
+        }
         function setButton() {
           var label = playing ? "Pause" : finished ? "Replay" : "Play";
           playBtn.innerHTML = '<span class="' + (playing ? "wx-pause" : "wx-play") + '" aria-hidden="true"></span><span class="wx-play-label">' + label + "</span>";
@@ -1482,7 +1489,7 @@
         }
         function play() {
           if (finished || (cur === scenes.length - 1 && elapsed >= DURS[cur])) { finished = false; show(0); }
-          playing = true; elapsed = 0; fired = 0; setButton();
+          playing = true; elapsed = 0; fired = 0; setButton(); paintBars();
           try {
             audio.currentTime = STARTS[cur] / 1000;
             audio.volume = vol = 0;
@@ -1491,10 +1498,10 @@
         }
         function pause() {
           if (!playing) return;
-          playing = false; setButton();
+          playing = false; setButton(); paintBars();
           try { audio.pause(); } catch (e) {}
         }
-        function finish() { playing = false; finished = true; setButton(); }
+        function finish() { playing = false; finished = true; setButton(); paintBars(); }
 
         playBtn.addEventListener("click", function () { if (playing) pause(); else play(); });
         tabs.forEach(function (t, i) {
