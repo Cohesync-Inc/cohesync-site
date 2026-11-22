@@ -449,7 +449,10 @@
       .wx-connect.is-connected .wx-chips li { left: var(--rx); top: var(--ry); animation: none; }
       .wx-connect.is-connected .wx-lines line { stroke-dashoffset: 0; }
       .wx-connect.is-connected .wx-hub { transform: none; opacity: 1; }
-      .wx-connect-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 20px; }
+      .wx-connect-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; row-gap: 12px; }
+      .wx-connect-foot .wx-btn { margin-left: 20px; max-width: 240px; overflow: hidden; white-space: nowrap;
+        transition: opacity .35s ease, max-width .5s ease .1s, margin .5s ease .1s, padding .5s ease .1s, border-width .5s ease .1s, filter .2s; }
+      .wx-connect.is-connected .wx-connect-foot .wx-btn { opacity: 0; max-width: 0; margin-left: 0; padding-left: 0; padding-right: 0; border-width: 0; pointer-events: none; }
       .wx-cap { margin: 0; font-size: 18px; color: var(--wx-ink-soft); }
       .wx-connect.is-connected .wx-cap { color: var(--wx-deep); font-weight: 500; }
 
@@ -1410,9 +1413,10 @@
         function setConnected(on) {
           connect.classList.toggle("is-connected", on);
           cap.textContent = cap.getAttribute(on ? "data-on" : "data-off");
-          connectBtn.textContent = on ? "Scatter them" : "Connect them";
+          connectBtn.disabled = on;
+          if (on) connectBtn.setAttribute("aria-hidden", "true"); else connectBtn.removeAttribute("aria-hidden");
         }
-        connectBtn.addEventListener("click", function () { pause(); setConnected(!connect.classList.contains("is-connected")); });
+        connectBtn.addEventListener("click", function () { pause(); setConnected(true); });
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
         function picker(sel) {
@@ -1464,6 +1468,7 @@
           });
           elapsed = 0; fired = 0;
           clearHot(ctaBtns); hotChip(-1);
+          if (cur === 0 && !playing) setConnected(false);   /* fresh scattered state on every visit */
           if (cur === 2) resetFound();
           /* replay the scene's entrance animation each time it is shown */
           scenes.forEach(function (s) { s.classList.remove("is-in"); });
