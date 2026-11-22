@@ -279,6 +279,8 @@
       .wq-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
       .wq-tiles li { background: var(--ink-panel); border-radius: 10px; padding: 16px; font-weight: 600; font-size: 16px; line-height: 1.35; }
       .wq-note { font-size: 15px; color: var(--on-dark-2); }
+      .wq-video { margin: 24px 0 0; border-radius: 20px; overflow: hidden; background: var(--ink-deep); line-height: 0; }
+      .wq-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
 
       /* ---------- Philosophy ---------- */
       .philosophy { background: var(--white); }
@@ -608,6 +610,12 @@
               <p class="wq-note">One workspace. One set of people and permissions. One intelligence foundation.</p>
             </div>
           </div>
+          <figure class="wq-video">
+            <video controls playsinline preload="none" poster="assets/worklynq-promo-poster.jpg" aria-label="Meet Worklynq: a 38-second introduction to Worklynq">
+              <source src="assets/worklynq-promo.mp4" type="video/mp4" />
+              <a href="assets/worklynq-promo.mp4">Watch the Worklynq video</a>
+            </video>
+          </figure>
         </div>
       </section>
 
