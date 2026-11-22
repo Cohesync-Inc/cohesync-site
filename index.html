@@ -301,6 +301,21 @@
       .wx-pause { width: 12px; height: 14px; border-left: 4px solid currentColor; border-right: 4px solid currentColor; }
       .wx-play { width: 0; height: 0; border-left: 12px solid currentColor; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px; }
 
+      .wx-play-btn {
+        display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 18px 0 16px; border-radius: 999px;
+        border: 0; background: var(--wx-deep); color: var(--wx-paper); font-size: 15px; font-weight: 600;
+      }
+      .wx-play-btn:hover { filter: brightness(1.12); }
+      .wx-play-btn .wx-play { margin-left: 0; border-left-width: 11px; border-top-width: 6.5px; border-bottom-width: 6.5px; }
+      .wx-play-btn .wx-pause { width: 11px; height: 13px; border-left-width: 3.5px; border-right-width: 3.5px; }
+      .wx-mute svg { width: 20px; height: 20px; }
+      .wx-mute .wx-x { display: none; }
+      .wx-mute[aria-pressed="true"] .wx-x { display: inline; }
+      .wx-mute[aria-pressed="true"] .wx-wave { display: none; }
+      .wx-chips li.is-hot { border-color: var(--wx-teal); background: var(--wx-sage); }
+      .wx-col li { transition: background .25s, border-color .25s, color .25s; }
+      .wx-col li.is-hot { background: var(--wx-deep); border-color: var(--wx-deep); color: var(--wx-paper); }
+      .wx-btns .is-hot { box-shadow: 0 0 0 4px rgba(31, 143, 118, .25); }
       .wx-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
       .wx-tabs [role="tab"] {
         background: none; border: 0; padding: 0; text-align: left; color: var(--wx-ink-soft);
@@ -778,9 +793,11 @@
               <p class="wx-kicker">Explore Worklynq</p>
               <div class="wx-controls">
                 <button type="button" class="wx-icon-btn" data-wx="prev" aria-label="Previous">&#8592;</button>
-                <button type="button" class="wx-icon-btn" data-wx="play" aria-label="Pause walkthrough"><span class="wx-pause" aria-hidden="true"></span></button>
                 <button type="button" class="wx-icon-btn" data-wx="next" aria-label="Next">&#8594;</button>
+                <button type="button" class="wx-icon-btn wx-mute" data-wx="mute" aria-label="Mute music" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="wx-wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="wx-x" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+                <button type="button" class="wx-play-btn" data-wx="play" aria-label="Play the walkthrough with music"><span class="wx-play" aria-hidden="true"></span><span class="wx-play-label">Play</span></button>
               </div>
+              <audio class="wx-audio" preload="none" src="assets/worklynq-tour.mp3"></audio>
             </div>
 
             <div class="wx-tabs" role="tablist" aria-label="Worklynq walkthrough">
@@ -1191,23 +1208,24 @@
       document.querySelectorAll(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));
     </script>
       <script>
-      /* Explore Worklynq: interactive walkthrough */
+      /* Explore Worklynq: interactive walkthrough.
+         Visitors can click through freely; "Play" runs the full scripted tour
+         (every interaction, in order) with background music. */
       (function () {
         var root = document.getElementById("explore-worklynq");
         if (!root) return;
-        var tabs = [].slice.call(root.querySelectorAll('[role="tab"]'));
-        var scenes = [].slice.call(root.querySelectorAll(".wx-scene"));
-        var playBtn = root.querySelector('[data-wx="play"]');
-        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        var DUR = 9000;
-        var cur = 0, playing = !reduce, inView = false, hovering = false, elapsed = 0, last = 0;
+        var $ = function (s, el) { return (el || root).querySelector(s); };
+        var $$ = function (s, el) { return [].slice.call((el || root).querySelectorAll(s)); };
+        var tabs = $$('[role="tab"]'), scenes = $$(".wx-scene");
+        var playBtn = $('[data-wx="play"]'), muteBtn = $('[data-wx="mute"]'), audio = $(".wx-audio");
+        var DURS = [10000, 10000, 10000, 8000, 6000], STARTS = [0];
+        for (var d = 1; d < DURS.length; d++) STARTS[d] = STARTS[d - 1] + DURS[d - 1];
+        var cur = 0, playing = false, finished = false, elapsed = 0, last = 0, fired = 0, vol = 0, VOL = 0.75;
 
-        /* --- scene 1: chip layout (scattered -> ring around the hub) --- */
-        var connect = root.querySelector(".wx-connect");
-        var chips = [].slice.call(connect.querySelectorAll(".wx-chips li"));
+        /* ---------- scene 1: chips scatter / connect ---------- */
+        var connect = $(".wx-connect"), chips = $$(".wx-chips li", connect), lines = $(".wx-lines", connect);
         var scatter = [[14, 18], [86, 14], [10, 62], [84, 70], [52, 8], [34, 88], [66, 90], [30, 40]];
-        var lines = connect.querySelector(".wx-lines");
-        var NS = "http://www.w3.org/2000/svg";
+        var NS = "http://www.w3.org/2000/svg", lineEls = [];
         chips.forEach(function (li, i) {
           var a = -Math.PI / 2 + i * 2 * Math.PI / chips.length;
           var rx = 50 + Math.cos(a) * 36, ry = 50 + Math.sin(a) * 38;
@@ -1215,98 +1233,150 @@
           li.style.setProperty("--x", scatter[i][0] + "%"); li.style.setProperty("--y", scatter[i][1] + "%");
           li.style.setProperty("--rx", rx + "%"); li.style.setProperty("--ry", ry + "%");
           var ln = document.createElementNS(NS, "line");
-          ln.setAttribute("x1", 500); ln.setAttribute("y1", 500);
-          ln.setAttribute("x2", rx * 10); ln.setAttribute("y2", ry * 10);
-          lines.appendChild(ln);
+          ln.setAttribute("x1", 500); ln.setAttribute("y1", 500); ln.setAttribute("x2", rx * 10); ln.setAttribute("y2", ry * 10);
+          lines.appendChild(ln); lineEls.push(ln);
           li.addEventListener("mouseenter", function () { ln.classList.add("is-hot"); });
-          li.addEventListener("mouseleave", function () { ln.classList.remove("is-hot"); });
+          li.addEventListener("mouseleave", function () { if (!li.classList.contains("is-hot")) ln.classList.remove("is-hot"); });
         });
-        var cap = connect.querySelector(".wx-cap");
-        var connectBtn = connect.querySelector('[data-wx="connect"]');
+        function hotChip(i) {
+          chips.forEach(function (c, j) { c.classList.toggle("is-hot", j === i); lineEls[j].classList.toggle("is-hot", j === i); });
+        }
+        var cap = $(".wx-cap", connect), connectBtn = $('[data-wx="connect"]', connect);
         function setConnected(on) {
           connect.classList.toggle("is-connected", on);
-          cap.textContent = on ? cap.getAttribute("data-on") : cap.getAttribute("data-off");
+          cap.textContent = cap.getAttribute(on ? "data-on" : "data-off");
           connectBtn.textContent = on ? "Scatter them" : "Connect them";
         }
-        connectBtn.addEventListener("click", function () { setConnected(!connect.classList.contains("is-connected")); stop(); });
+        connectBtn.addEventListener("click", function () { pause(); setConnected(!connect.classList.contains("is-connected")); });
 
-        /* --- scenes 2 & 3: pick an item, show its detail --- */
-        [".wx-areas", ".wx-found"].forEach(function (sel) {
-          var scene = root.querySelector(sel);
-          var items = [].slice.call(scene.querySelectorAll("[data-detail]"));
-          var detail = scene.querySelector(".wx-detail");
-          items.forEach(function (b) {
-            function pick() {
-              items.forEach(function (o) { o.classList.toggle("is-on", o === b); o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
-              detail.textContent = b.getAttribute("data-detail");
-            }
-            b.addEventListener("click", function () { pick(); stop(); });
-            b.addEventListener("mouseenter", pick);
-            b.addEventListener("focus", pick);
+        /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
+        function picker(sel) {
+          var scene = $(sel), items = $$("[data-detail]", scene), detail = $(".wx-detail", scene);
+          function pick(i) {
+            items.forEach(function (o, j) { o.classList.toggle("is-on", j === i); o.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+            detail.textContent = items[i].getAttribute("data-detail");
+          }
+          items.forEach(function (b, i) {
+            b.addEventListener("click", function () { pause(); pick(i); });
+            b.addEventListener("mouseenter", function () { if (!playing) pick(i); });
+            b.addEventListener("focus", function () { if (!playing) pick(i); });
           });
-        });
+          return pick;
+        }
+        var pickArea = picker(".wx-areas"), pickPill = picker(".wx-found");
 
-        /* --- navigation --- */
+        /* ---------- scene 4 & 5 highlights ---------- */
+        var peopleItems = $$(".wx-col:not(.wx-col-ai) li"), aiItems = $$(".wx-col-ai li");
+        var ctaBtns = $$(".wx-btns > *");
+        function clearHot(list) { list.forEach(function (el) { el.classList.remove("is-hot"); }); }
+        function hot(el, only) { if (only) clearHot(only); el.classList.add("is-hot"); }
+
+        /* ---------- the scripted tour: [ms into scene, action] ---------- */
+        var TL = [
+          [[0, function () { setConnected(false); hotChip(-1); }], [1400, function () { setConnected(true); }]]
+            .concat(chips.map(function (_, i) { return [3300 + i * 700, function () { hotChip(i); }]; }))
+            .concat([[3300 + chips.length * 700, function () { hotChip(-1); }]]),
+          [0, 2500, 5000, 7500].map(function (t, i) { return [t + 300, function () { pickArea(i); }]; }),
+          [0, 1, 2, 3, 4, 5, 6].map(function (i) { return [300 + i * 1350, function () { pickPill(i); }]; }),
+          [[0, function () { clearHot(peopleItems); clearHot(aiItems); }]]
+            .concat(peopleItems.map(function (el, i) { return [700 + i * 450, function () { hot(el); }]; }))
+            .concat(aiItems.map(function (el, i) { return [3600 + i * 450, function () { hot(el); }]; })),
+          [[0, function () { clearHot(ctaBtns); }], [1600, function () { hot(ctaBtns[0], ctaBtns); }],
+           [3200, function () { hot(ctaBtns[1], ctaBtns); }], [4800, function () { hot(ctaBtns[2], ctaBtns); }]]
+        ];
+
+        /* ---------- navigation ---------- */
         function show(n) {
           cur = (n + scenes.length) % scenes.length;
-          scenes.forEach(function (s, i) { var on = i === cur; s.classList.toggle("is-active", on); s.inert = !on; if (on) s.removeAttribute("aria-hidden"); else s.setAttribute("aria-hidden", "true"); });
-          tabs.forEach(function (t, i) {
-            t.setAttribute("aria-selected", i === cur ? "true" : "false");
-            t.tabIndex = i === cur ? 0 : -1;
-            t.classList.toggle("is-done", i < cur);
-            t.querySelector(".wx-bar i").style.width = i < cur ? "100%" : "0";
+          scenes.forEach(function (s, i) {
+            var on = i === cur; s.classList.toggle("is-active", on); s.inert = !on;
+            if (on) s.removeAttribute("aria-hidden"); else s.setAttribute("aria-hidden", "true");
           });
-          elapsed = 0;
-          if (cur === 0) { setConnected(false); if (playing) setTimeout(function () { if (cur === 0 && playing) setConnected(true); }, 2600); }
+          tabs.forEach(function (t, i) {
+            t.setAttribute("aria-selected", i === cur ? "true" : "false"); t.tabIndex = i === cur ? 0 : -1;
+            $(".wx-bar i", t).style.width = i < cur ? "100%" : "0";
+          });
+          elapsed = 0; fired = 0;
+          if (!playing) { clearHot(peopleItems); clearHot(aiItems); clearHot(ctaBtns); hotChip(-1); }
         }
-        function setPlaying(on) {
-          playing = on;
-          playBtn.innerHTML = on ? '<span class="wx-pause" aria-hidden="true"></span>' : '<span class="wx-play" aria-hidden="true"></span>';
-          playBtn.setAttribute("aria-label", on ? "Pause walkthrough" : "Play walkthrough");
+        function setButton() {
+          var label = playing ? "Pause" : finished ? "Replay" : "Play";
+          playBtn.innerHTML = '<span class="' + (playing ? "wx-pause" : "wx-play") + '" aria-hidden="true"></span><span class="wx-play-label">' + label + "</span>";
+          playBtn.setAttribute("aria-label", playing ? "Pause the walkthrough" : label + " the walkthrough with music");
         }
-        function stop() { if (playing) setPlaying(false); }
+        function play() {
+          if (finished || (cur === scenes.length - 1 && elapsed >= DURS[cur])) { finished = false; show(0); }
+          playing = true; elapsed = 0; fired = 0; setButton();
+          try {
+            audio.currentTime = STARTS[cur] / 1000;
+            audio.volume = vol = 0;
+            var p = audio.play(); if (p && p.catch) p.catch(function () {});
+          } catch (e) {}
+        }
+        function pause() {
+          if (!playing) return;
+          playing = false; setButton();
+          try { audio.pause(); } catch (e) {}
+        }
+        function finish() { playing = false; finished = true; setButton(); }
+
+        playBtn.addEventListener("click", function () { if (playing) pause(); else play(); });
         tabs.forEach(function (t, i) {
-          t.addEventListener("click", function () { show(i); stop(); });
+          t.addEventListener("click", function () { pause(); show(i); });
           t.addEventListener("keydown", function (e) {
             var k = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-            if (k) { e.preventDefault(); show(cur + k); tabs[cur].focus(); stop(); }
+            if (k) { e.preventDefault(); pause(); show(cur + k); tabs[cur].focus(); }
           });
         });
-        root.querySelector('[data-wx="prev"]').addEventListener("click", function () { show(cur - 1); stop(); });
-        root.querySelector('[data-wx="next"]').addEventListener("click", function () { show(cur + 1); stop(); });
-        playBtn.addEventListener("click", function () { setPlaying(!playing); if (playing && cur === scenes.length - 1) show(0); });
-        root.addEventListener("mouseenter", function () { hovering = true; });
-        root.addEventListener("mouseleave", function () { hovering = false; });
+        $('[data-wx="prev"]').addEventListener("click", function () { pause(); show(cur - 1); });
+        $('[data-wx="next"]').addEventListener("click", function () { pause(); show(cur + 1); });
 
-        /* --- autoplay: only while on screen and not hovered --- */
+        /* ---------- sound ---------- */
+        var muted = false;
+        try { muted = localStorage.getItem("wx-muted") === "1"; } catch (e) {}
+        function setMuted(m) {
+          muted = m; audio.muted = m; muteBtn.setAttribute("aria-pressed", m ? "true" : "false");
+          muteBtn.setAttribute("aria-label", m ? "Unmute music" : "Mute music");
+          try { localStorage.setItem("wx-muted", m ? "1" : "0"); } catch (e) {}
+        }
+        muteBtn.addEventListener("click", function () { setMuted(!muted); });
+        setMuted(muted);
+
+        /* stop when the visitor leaves (tab hidden or section scrolled away) */
+        document.addEventListener("visibilitychange", function () { if (document.hidden) pause(); });
         if ("IntersectionObserver" in window) {
-          new IntersectionObserver(function (es) {
-            inView = es[0].isIntersecting;
-            if (inView && cur === 0 && playing && !connect.classList.contains("is-connected")) show(0);
-          }, { threshold: 0.4 }).observe(root);
-        } else { inView = true; }
+          new IntersectionObserver(function (es) { if (!es[0].isIntersecting) pause(); }, { threshold: 0.15 }).observe(root);
+        }
+
+        /* ---------- clock ---------- */
         function tick(ts) {
-          var dt = last ? ts - last : 0; last = ts;
-          if (playing && inView && !hovering && !document.hidden) {
+          var dt = last ? Math.min(ts - last, 100) : 0; last = ts;
+          if (playing) {
             elapsed += dt;
-            tabs[cur].querySelector(".wx-bar i").style.width = Math.min(100, elapsed / DUR * 100) + "%";
-            if (elapsed >= DUR) { if (cur === scenes.length - 1) setPlaying(false); else show(cur + 1); }
+            var tl = TL[cur];
+            while (fired < tl.length && tl[fired][0] <= elapsed) { tl[fired][1](); fired++; }
+            $(".wx-bar i", tabs[cur]).style.width = Math.min(100, elapsed / DURS[cur] * 100) + "%";
+            if (vol < VOL) { vol = Math.min(VOL, vol + dt / 800 * VOL); try { audio.volume = vol; } catch (e) {} }
+            var want = (STARTS[cur] + elapsed) / 1000;
+            if (!audio.paused && Math.abs(audio.currentTime - want) > 0.35) { try { audio.currentTime = want; } catch (e) {} }
+            if (elapsed >= DURS[cur]) {
+              if (cur === scenes.length - 1) finish();
+              else { show(cur + 1); }
+            }
           }
           requestAnimationFrame(tick);
         }
-        setPlaying(playing);
-        show(0);
-        requestAnimationFrame(tick);
+        setButton(); show(0); requestAnimationFrame(tick);
 
-        /* --- film dialog --- */
-        var dlg = root.querySelector(".wx-film"), vid = dlg.querySelector("video");
-        root.querySelector('[data-wx="film"]').addEventListener("click", function () {
-          stop();
-          if (dlg.showModal) { dlg.showModal(); } else { dlg.setAttribute("open", ""); }
-          vid.play().catch(function () {});
+        /* ---------- film dialog ---------- */
+        var dlg = $(".wx-film"), vid = $("video", dlg);
+        $('[data-wx="film"]').addEventListener("click", function () {
+          pause();
+          if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+          var p = vid.play(); if (p && p.catch) p.catch(function () {});
         });
         function closeFilm() { vid.pause(); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
-        root.querySelector('[data-wx="close"]').addEventListener("click", closeFilm);
+        $('[data-wx="close"]').addEventListener("click", closeFilm);
         dlg.addEventListener("click", function (e) { if (e.target === dlg) closeFilm(); });
         dlg.addEventListener("close", function () { vid.pause(); });
       })();
