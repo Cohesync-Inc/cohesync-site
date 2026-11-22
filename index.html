@@ -496,11 +496,11 @@
       .wx-logo { width: min(420px, 80%); height: auto; color: var(--wx-logo); }
       .wx-tag { margin: 0; font-family: var(--wx-serif); font-weight: 500; font-size: clamp(20px, 2.4vw, 30px); color: var(--wx-deep); }
       .wx-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 6px; }
-      .wx-btn-light { background: var(--wx-deep); color: var(--wx-paper); }
-      .wx-btn-light:hover { color: var(--wx-paper); }
-      .wx-btn-line { border-color: var(--wx-deep); color: var(--wx-deep); background: transparent; }
-      .wx-btn-line:hover { color: var(--wx-deep); background: var(--wx-sage); }
-      .wx-btn-ghost { background: none; border-color: transparent; color: var(--wx-teal); padding-left: 10px; }
+      .wx-btn-film { background: var(--wx-deep); color: var(--wx-paper); padding: 10px 26px 10px 10px; font-size: 18px; border-radius: 999px; gap: 14px; }
+      .wx-film-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--wx-paper); color: var(--wx-deep); }
+      .wx-film-icon .wx-tri { margin-left: 3px; }
+      .wx-btn-film.is-hot .wx-film-icon { animation: wx-film-pulse 1.4s ease-out 2; }
+      @keyframes wx-film-pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 174, 142, .6); } 100% { box-shadow: 0 0 0 16px rgba(47, 174, 142, 0); } }
       .wx-tri { width: 0; height: 0; border-left: 10px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
 
       .wx-film { padding: 0; border: 0; border-radius: 14px; background: #000; width: min(1100px, 94vw); overflow: visible; }
@@ -931,7 +931,7 @@
               <button type="button" role="tab" id="wx-tab-1" aria-controls="wx-s1" aria-selected="false" tabindex="-1"><span class="wx-bar"><i></i></span>Four areas</button>
               <button type="button" role="tab" id="wx-tab-2" aria-controls="wx-s2" aria-selected="false" tabindex="-1"><span class="wx-bar"><i></i></span>One foundation</button>
               <button type="button" role="tab" id="wx-tab-3" aria-controls="wx-s3" aria-selected="false" tabindex="-1"><span class="wx-bar"><i></i></span>People + AI</button>
-              <button type="button" role="tab" id="wx-tab-4" aria-controls="wx-s4" aria-selected="false" tabindex="-1"><span class="wx-bar"><i></i></span>Get started</button>
+              <button type="button" role="tab" id="wx-tab-4" aria-controls="wx-s4" aria-selected="false" tabindex="-1"><span class="wx-bar"><i></i></span>Watch the film</button>
             </div>
 
             <div class="wx-stage">
@@ -1010,9 +1010,7 @@
                 <svg class="wx-logo" viewBox="0 0 305 57" role="img" aria-label="Worklynq"><use href="#wx-wordmark" /></svg>
                 <p class="wx-tag">Intelligence Behind Every Operation</p>
                 <div class="wx-btns">
-                  <a class="wx-btn wx-btn-light" href="https://worklynq.com/#demo">Request a demo</a>
-                  <a class="wx-btn wx-btn-line" href="https://worklynq.com">Visit worklynq.com</a>
-                  <button type="button" class="wx-btn wx-btn-ghost" data-wx="film"><span class="wx-tri" aria-hidden="true"></span>Watch the 38-second film</button>
+                  <button type="button" class="wx-btn wx-btn-film" data-wx="film"><span class="wx-film-icon" aria-hidden="true"><span class="wx-tri"></span></span>Watch the 38-second film</button>
                 </div>
               </section>
             </div>
@@ -1450,8 +1448,7 @@
           [0, 1475, 2951, 4426].map(function (t, i) { return [t, function () { pickArea(i); }]; }),
           [],
           [],
-          [[492, function () { hot(ctaBtns[0], ctaBtns); }], [1475, function () { hot(ctaBtns[1], ctaBtns); }],
-           [2459, function () { hot(ctaBtns[2], ctaBtns); }]]
+          [[492, function () { hot(ctaBtns[0], ctaBtns); }]]
         ];
 
         /* ---------- navigation ---------- */
