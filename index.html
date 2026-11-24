@@ -503,6 +503,33 @@
       .wx-film-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--wx-paper); color: var(--wx-deep); }
       .wx-film-icon .wx-tri { margin-left: 3px; }
       .wx-btn-film.is-hot .wx-film-icon { animation: wx-film-pulse 1.4s ease-out 2; }
+      .wx-film-fill { display: none; }
+      /* phones: slide to watch */
+      .wx-btn-film.is-slider {
+        position: relative; overflow: hidden; width: min(330px, 100%); height: 64px; padding: 0 22px 0 70px;
+        justify-content: center; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+      }
+      .wx-btn-film.is-slider:hover { filter: none; }
+      .wx-btn-film.is-slider .wx-film-icon {
+        position: absolute; left: 10px; top: 10px; z-index: 2; cursor: grab;
+        transform: translateX(var(--kx, 0px)); transition: transform .35s cubic-bezier(.2, .9, .3, 1.2);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+      }
+      .wx-btn-film.is-slider .wx-film-fill {
+        display: block; position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; border-radius: 999px;
+        width: calc(var(--kx, 0px) + 64px); background: rgba(47, 174, 142, .45); transition: width .35s cubic-bezier(.2, .9, .3, 1.2);
+      }
+      .wx-btn-film.is-slider.is-dragging .wx-film-icon, .wx-btn-film.is-slider.is-dragging .wx-film-fill { transition: none; }
+      .wx-btn-film.is-slider.is-dragging .wx-film-icon { cursor: grabbing; }
+      .wx-btn-film.is-slider .wx-film-label {
+        position: relative; z-index: 1; font-size: 17px; white-space: nowrap; opacity: calc(1 - var(--kp, 0) * 1.4);
+        background: linear-gradient(100deg, rgba(245, 243, 236, .55) 30%, #fff 50%, rgba(245, 243, 236, .55) 70%);
+        background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+        animation: wx-slide-shine 2.4s linear infinite;
+      }
+      @keyframes wx-slide-shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+      .wx-btn-film.is-slider.is-nudge .wx-film-icon { animation: wx-nudge .9s ease; }
+      @keyframes wx-nudge { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(46px); } 55% { transform: translateX(0); } 75% { transform: translateX(16px); } }
       @keyframes wx-film-pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 174, 142, .6); } 100% { box-shadow: 0 0 0 16px rgba(47, 174, 142, 0); } }
       .wx-tri { width: 0; height: 0; border-left: 10px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
 
@@ -1013,7 +1040,7 @@
                 <svg class="wx-logo" viewBox="0 0 305 57" role="img" aria-label="Worklynq"><use href="#wx-wordmark" /></svg>
                 <p class="wx-tag">Intelligence Behind Every Operation</p>
                 <div class="wx-btns">
-                  <button type="button" class="wx-btn wx-btn-film" data-wx="film"><span class="wx-film-icon" aria-hidden="true"><span class="wx-tri"></span></span>Watch the 38-second film</button>
+                  <button type="button" class="wx-btn wx-btn-film" data-wx="film" aria-label="Watch the 38-second film"><span class="wx-film-fill" aria-hidden="true"></span><span class="wx-film-icon" aria-hidden="true"><span class="wx-tri"></span></span><span class="wx-film-label" aria-hidden="true">Watch the 38-second film</span></button>
                 </div>
               </section>
             </div>
@@ -1553,11 +1580,67 @@
 
         /* ---------- film dialog ---------- */
         var dlg = $(".wx-film"), vid = $("video", dlg);
-        $('[data-wx="film"]').addEventListener("click", function () {
+        var filmBtn = $('[data-wx="film"]'), filmLabel = $(".wx-film-label", filmBtn), knob = $(".wx-film-icon", filmBtn);
+        function openFilm() {
           pause();
           if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
           var p = vid.play(); if (p && p.catch) p.catch(function () {});
+        }
+
+        /* Phones: slide the play knob across to open the film. Laptops: click.
+           Keyboard and screen-reader activation (click with detail 0) always opens it. */
+        var phone = window.matchMedia("(max-width: 640px)");
+        var slider = false, dragging = false, startX = 0, kx = 0, max = 0, moved = false;
+        function setKnob(x) {
+          kx = x; filmBtn.style.setProperty("--kx", x + "px");
+          filmBtn.style.setProperty("--kp", max ? (x / max).toFixed(3) : 0);
+        }
+        function setSlider(on) {
+          slider = on; filmBtn.classList.toggle("is-slider", on);
+          filmLabel.textContent = on ? "Slide to watch" : "Watch the 38-second film";
+          setKnob(0);
+        }
+        setSlider(phone.matches);
+        if (phone.addEventListener) phone.addEventListener("change", function (e) { setSlider(e.matches); });
+        else if (phone.addListener) phone.addListener(function (e) { setSlider(e.matches); });
+
+        filmBtn.addEventListener("pointerdown", function (e) {
+          if (!slider || (e.pointerType === "mouse" && e.button !== 0)) return;
+          dragging = true; moved = false; startX = e.clientX - kx;
+          max = filmBtn.clientWidth - knob.offsetWidth - 20;
+          filmBtn.classList.add("is-dragging"); filmBtn.classList.remove("is-nudge");
+          try { filmBtn.setPointerCapture(e.pointerId); } catch (err) {}
         });
+        filmBtn.addEventListener("pointermove", function (e) {
+          if (!dragging) return;
+          var x = Math.max(0, Math.min(max, e.clientX - startX));
+          if (Math.abs(x - kx) > 2) moved = true;
+          setKnob(x);
+        });
+        function endDrag() {
+          if (!dragging) return;
+          dragging = false; filmBtn.classList.remove("is-dragging");
+          if (kx >= max * 0.85) {
+            setKnob(max);
+            if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
+            setTimeout(function () { openFilm(); setKnob(0); }, 180);
+          } else {
+            setKnob(0);
+          }
+        }
+        filmBtn.addEventListener("pointerup", endDrag);
+        filmBtn.addEventListener("pointercancel", endDrag);
+        filmBtn.addEventListener("lostpointercapture", endDrag);
+
+        filmBtn.addEventListener("click", function (e) {
+          if (!slider || e.detail === 0) { openFilm(); return; }
+          /* a tap on the slider: show how it works instead of opening */
+          e.preventDefault();
+          if (!moved) {
+            filmBtn.classList.remove("is-nudge"); void filmBtn.offsetWidth; filmBtn.classList.add("is-nudge");
+          }
+        });
+        filmBtn.addEventListener("animationend", function (e) { if (e.animationName === "wx-nudge") filmBtn.classList.remove("is-nudge"); });
         function closeFilm() { vid.pause(); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
         $('[data-wx="close"]').addEventListener("click", closeFilm);
         dlg.addEventListener("click", function (e) { if (e.target === dlg) closeFilm(); });
