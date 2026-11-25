@@ -1631,9 +1631,8 @@
         });
         connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
 
-        /* A deep-house "hmmm": a soft kick and a warm, filtered minor-9th chord that swells as the
-           pieces snap into Worklynq, a low hummed voice under it, and one echoing stab on the
-           off-beat (122 BPM, like the section's music). Made on the fly with Web Audio (no sound
+        /* A growing deep-house hum: a hummed "mmm", a sub and a warm minor-9th chord that swell
+           from the click until the pieces land in Worklynq, then fade (122 BPM, like the section's music). Made on the fly with Web Audio (no sound
            file). Respects the section's mute button and reduce-motion; phones in silent mode stay silent. */
         var actx = null;
         function cheer() {
@@ -1658,52 +1657,63 @@
           var dlp = ctx.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 1400;
           delay.connect(dlp); dlp.connect(fb); fb.connect(delay); dlp.connect(wet); wet.connect(master);
 
-          /* soft kick on the landing */
-          var ko = ctx.createOscillator(), kg = ctx.createGain();
-          ko.type = "sine";
-          ko.frequency.setValueAtTime(115, t0); ko.frequency.exponentialRampToValueAtTime(42, t0 + 0.28);
-          kg.gain.setValueAtTime(0.0001, t0); kg.gain.exponentialRampToValueAtTime(0.75, t0 + 0.008);
-          kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
-          ko.connect(kg); kg.connect(master); ko.start(t0); ko.stop(t0 + 0.5);
-
-          /* the chord: Fm9 voiced warm and low, detuned saws through a lowpass that opens and closes */
-          var chord = [87.31, 207.65, 261.63, 311.13, 392.0];   /* F2, Ab3, C4, Eb4, G4 */
-          function stab(t, len, peak, open) {
-            var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.Q.value = 6;
-            f.frequency.setValueAtTime(220, t);
-            f.frequency.exponentialRampToValueAtTime(open, t + len * 0.35);
-            f.frequency.exponentialRampToValueAtTime(260, t + len);
-            var g = ctx.createGain();
-            g.gain.setValueAtTime(0.0001, t);
-            g.gain.exponentialRampToValueAtTime(peak, t + 0.12);
-            g.gain.setValueAtTime(peak, t + len * 0.45);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-            f.connect(g); g.connect(master); g.connect(delay);
-            chord.forEach(function (hz) {
-              [-7, 7].forEach(function (cents) {
-                var o = ctx.createOscillator(); o.type = "sawtooth";
-                o.frequency.value = hz; o.detune.value = cents;
-                var v = ctx.createGain(); v.gain.value = hz < 100 ? 0.11 : 0.06;
-                o.connect(v); v.connect(f); o.start(t); o.stop(t + len + 0.05);
-              });
-            });
+          /* A growing hum: starts quietly the moment they click, swells and opens up as the pieces
+             fly in, peaks just after they land in Worklynq (with a soft kick), then fades. */
+          var start = ctx.currentTime + 0.03, land = t0, peakAt = t0 + 0.6, end = t0 + 2.5;
+          function swell(param, from, to) {
+            param.setValueAtTime(from, start);
+            param.linearRampToValueAtTime(to, peakAt);   /* an even, steady build */
+            param.setValueAtTime(to, peakAt + 0.35);
+            param.exponentialRampToValueAtTime(0.0001, end);
           }
-          stab(t0, 2.4, 0.5, 1500);                 /* the long, swelling hmmm */
-          stab(t0 + beat * 1.5, 0.55, 0.22, 1100);  /* one answering stab on the off-beat */
 
-          /* a hummed, voice-like "mmm" on F3, shaped by a nasal formant, with a little vibrato */
+          /* the hummed "mmm" on F3, nasal at first and opening up as it grows, vibrato deepening */
           var hum = ctx.createOscillator(), hg = ctx.createGain(), nasal = ctx.createBiquadFilter(), body = ctx.createBiquadFilter();
           hum.type = "sawtooth"; hum.frequency.value = 174.61;
-          var vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5; vg.gain.value = 3;
+          var vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5;
+          vg.gain.setValueAtTime(0.5, start); vg.gain.linearRampToValueAtTime(4, peakAt);
           vib.connect(vg); vg.connect(hum.frequency);
-          nasal.type = "bandpass"; nasal.frequency.value = 270; nasal.Q.value = 3;
-          body.type = "lowpass"; body.frequency.value = 600;
-          hg.gain.setValueAtTime(0.0001, t0 + 0.05);
-          hg.gain.exponentialRampToValueAtTime(0.35, t0 + 0.4);
-          hg.gain.setValueAtTime(0.35, t0 + 1.3);
-          hg.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.3);
+          nasal.type = "bandpass"; nasal.Q.value = 2.5;
+          nasal.frequency.setValueAtTime(240, start); nasal.frequency.exponentialRampToValueAtTime(420, peakAt);
+          body.type = "lowpass";
+          body.frequency.setValueAtTime(380, start); body.frequency.exponentialRampToValueAtTime(1100, peakAt);
+          body.frequency.exponentialRampToValueAtTime(500, end);
+          swell(hg.gain, 0.03, 0.42);
           hum.connect(nasal); nasal.connect(body); body.connect(hg); hg.connect(master); hg.connect(delay);
-          hum.start(t0); vib.start(t0); hum.stop(t0 + 2.4); vib.stop(t0 + 2.4);
+
+          /* a sub hum an octave below, for weight */
+          var sub = ctx.createOscillator(), sg = ctx.createGain();
+          sub.type = "sine"; sub.frequency.value = 87.31;
+          swell(sg.gain, 0.02, 0.32);
+          sub.connect(sg); sg.connect(master);
+
+          /* the deep-house chord (Fm9: F2 Ab3 C4 Eb4 G4) grows underneath, its filter opening as it swells */
+          var chord = [87.31, 207.65, 261.63, 311.13, 392.0];
+          var cf = ctx.createBiquadFilter(), cg = ctx.createGain();
+          cf.type = "lowpass"; cf.Q.value = 5;
+          cf.frequency.setValueAtTime(160, start);
+          cf.frequency.exponentialRampToValueAtTime(1700, peakAt);
+          cf.frequency.exponentialRampToValueAtTime(240, end);
+          swell(cg.gain, 0.02, 0.42);
+          cf.connect(cg); cg.connect(master); cg.connect(delay);
+          var oscs = [hum, vib, sub];
+          chord.forEach(function (hz) {
+            [-7, 7].forEach(function (cents) {
+              var o = ctx.createOscillator(); o.type = "sawtooth";
+              o.frequency.value = hz; o.detune.value = cents;
+              var v = ctx.createGain(); v.gain.value = hz < 100 ? 0.11 : 0.06;
+              o.connect(v); v.connect(cf); oscs.push(o);
+            });
+          });
+          oscs.forEach(function (o) { o.start(start); o.stop(end + 0.1); });
+
+          /* soft kick as the pieces land */
+          var ko = ctx.createOscillator(), kg = ctx.createGain();
+          ko.type = "sine";
+          ko.frequency.setValueAtTime(115, land); ko.frequency.exponentialRampToValueAtTime(42, land + 0.28);
+          kg.gain.setValueAtTime(0.0001, land); kg.gain.exponentialRampToValueAtTime(0.7, land + 0.008);
+          kg.gain.exponentialRampToValueAtTime(0.0001, land + 0.45);
+          ko.connect(kg); kg.connect(master); ko.start(land); ko.stop(land + 0.5);
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
