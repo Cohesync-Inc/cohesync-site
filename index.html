@@ -1731,7 +1731,39 @@
           var out = ctx.createGain(); out.gain.value = 0.7; out.connect(ctx.destination);
           drums[i % drums.length](ctx, ctx.currentTime + 0.005, out);
         }
-        var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found");
+        /* third screen: each building-block pill plays a piano note, jumping between low and high
+           across two octaves of the F minor pentatonic (F A-flat B-flat C E-flat), so any order sounds
+           good and the row is playful rather than a plain scale:
+           low F, high C, low A-flat, high F, low B-flat, high E-flat, middle C */
+        var pianoNotes = [174.61, 523.25, 207.65, 698.46, 233.08, 622.25, 261.63];
+        function piano(ctx, t, hz, out) {
+          var len = 2.2, B = 0.00035;                       /* string stiffness: slightly stretched overtones */
+          var note = ctx.createGain(); note.gain.value = 1; note.connect(out);
+          var tonef = ctx.createBiquadFilter(); tonef.type = "lowpass";
+          tonef.frequency.setValueAtTime(Math.min(9000, hz * 14), t);
+          tonef.frequency.exponentialRampToValueAtTime(Math.max(900, hz * 3), t + 0.8);   /* bright strike, mellows as it rings */
+          tonef.connect(note);
+          for (var n = 1; n <= 9; n++) {
+            var fn = hz * n * Math.sqrt(1 + B * n * n), amp = 0.32 / Math.pow(n, 1.15), dec = len / (1 + 0.35 * (n - 1));
+            [-1.2, 1.2].forEach(function (cents) {          /* two strings per note, a hair apart, for warmth */
+              var o = ctx.createOscillator(), g = ctx.createGain();
+              o.type = "sine"; o.frequency.value = fn; o.detune.value = cents;
+              g.gain.setValueAtTime(0.0001, t);
+              g.gain.exponentialRampToValueAtTime(amp, t + 0.004);
+              g.gain.exponentialRampToValueAtTime(amp * 0.35, t + 0.18);
+              g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+              o.connect(g); g.connect(tonef); o.start(t); o.stop(t + dec + 0.02);
+            });
+          }
+          hiss(ctx, t, "bandpass", Math.min(4000, hz * 4), 1.5, 0.05, 0.03, note);   /* the hammer */
+        }
+        function pillSound(i) {
+          var ctx = sfx();
+          if (!ctx) return;
+          var out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+          piano(ctx, ctx.currentTime + 0.005, pianoNotes[i % pianoNotes.length], out);
+        }
+        var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found", pillSound);
         var found = $(".wx-found"), pills = $$(".wx-pill", found), foundDetail = $(".wx-detail", found);
         pills.forEach(function (b, i) { b.style.setProperty("--i", i); b.style.setProperty("--dl", (0.45 + i * 0.08) + "s"); });
         function resetFound() {
