@@ -1631,64 +1631,79 @@
         });
         connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
 
-        /* A happy chime and a round of applause, made on the fly with Web Audio (no sound file).
-           Timed to land as the pieces snap into Worklynq. Respects the section's mute button
-           and reduce-motion; phones in silent mode stay silent. */
+        /* A double vibration buzz as the pieces land in Worklynq. Made on the fly with Web Audio (no sound
+           file). Respects the section's mute button and reduce-motion; phones in silent mode stay silent. */
         var actx = null;
-        function cheer() {
+        /* one shared audio context; null when the section is muted, motion is reduced or audio is unavailable */
+        function sfx() {
           var isMuted = false;
           try { isMuted = localStorage.getItem("wx-muted") === "1"; } catch (err) {}
-          if (isMuted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          if (isMuted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
           var AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
+          if (!AC) return null;
           try {
             actx = actx || new AC();
             if (actx.state === "suspended") actx.resume();
-          } catch (err) { return; }
-          var now = actx.currentTime, out = actx.createGain();
-          out.gain.value = 1.0; out.connect(actx.destination);
-
-          /* chime: a bright rising arpeggio as Worklynq lands */
-          [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
-            var t = now + 0.95 + i * 0.075, o = actx.createOscillator(), g = actx.createGain();
-            o.type = "triangle"; o.frequency.value = f;
-            g.gain.setValueAtTime(0.0001, t);
-            g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-            o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.65);
-          });
-
-          /* applause: lots of short, slightly different claps that swell and fade */
-          var len = Math.floor(actx.sampleRate * 0.05), noise = actx.createBuffer(1, len, actx.sampleRate), d = noise.getChannelData(0);
-          for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3);
-          var start = now + 1.0, dur = 2.6, claps = 230;
-          for (var c = 0; c < claps; c++) {
-            var u = Math.random(), t = start + Math.pow(u, 1.25) * dur;
-            var env = Math.sin(Math.PI * Math.min(1, (t - start) / dur * 1.15)) || 0.05;   /* swell, then fade */
-            var src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g2 = actx.createGain();
-            src.buffer = noise; src.playbackRate.value = 0.8 + Math.random() * 0.6;
-            bp.type = "bandpass"; bp.frequency.value = 900 + Math.random() * 1700; bp.Q.value = 0.9 + Math.random() * 0.8;
-            g2.gain.value = (0.18 + Math.random() * 0.22) * env;
-            src.connect(bp); bp.connect(g2); g2.connect(out);
-            src.start(t);
-          }
+          } catch (err) { return null; }
+          return actx;
+        }
+        /* a vibration: the buzz of a phone vibrating on a table (a low motor hum with a rattle) */
+        function buzz(ctx, t, len, amp, dest) {
+          var motor = ctx.createOscillator(), mg = ctx.createGain();
+          motor.type = "square";
+          motor.frequency.setValueAtTime(150, t); motor.frequency.linearRampToValueAtTime(168, t + 0.05);   /* motor spinning up */
+          motor.frequency.setValueAtTime(168, t + len - 0.04); motor.frequency.linearRampToValueAtTime(140, t + len);
+          var rattle = ctx.createOscillator(), rg = ctx.createGain();   /* the case rattling against the table */
+          rattle.type = "sine"; rattle.frequency.value = 37; rg.gain.value = 0.45;
+          rattle.connect(rg); rg.connect(mg.gain);
+          var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100; lp.Q.value = 0.7;
+          var res = ctx.createBiquadFilter(); res.type = "peaking"; res.frequency.value = 330; res.Q.value = 3; res.gain.value = 8;
+          var env = ctx.createGain();
+          env.gain.setValueAtTime(0.0001, t);
+          env.gain.exponentialRampToValueAtTime(amp, t + 0.02);
+          env.gain.setValueAtTime(amp, t + len - 0.04);
+          env.gain.exponentialRampToValueAtTime(0.0001, t + len);
+          mg.gain.value = 0.55;
+          motor.connect(mg); mg.connect(lp); lp.connect(res); res.connect(env); env.connect(dest);
+          motor.start(t); rattle.start(t); motor.stop(t + len + 0.02); rattle.stop(t + len + 0.02);
+        }
+        /* real vibration too, where the phone supports it (Android; iPhones don't allow it from web pages) */
+        function haptic(pattern) {
+          if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (err) {} }
+        }
+        function cheer() {
+          var ctx = sfx();
+          if (!ctx) return;
+          haptic([0, 950, 180, 90, 300]);   /* buzz-buzz as the pieces land */
+          var t0 = ctx.currentTime + 0.95;
+          var out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+          buzz(ctx, t0, 0.18, 0.6, out);
+          buzz(ctx, t0 + 0.27, 0.3, 0.6, out);
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
-        function picker(sel) {
+        function picker(sel, onTap) {
           var scene = $(sel), items = $$("[data-detail]", scene), detail = $(".wx-detail", scene);
           function pick(i) {
             items.forEach(function (o, j) { o.classList.toggle("is-on", j === i); o.setAttribute("aria-pressed", j === i ? "true" : "false"); });
             detail.textContent = items[i].getAttribute("data-detail");
           }
           items.forEach(function (b, i) {
-            b.addEventListener("click", function () { pause(); pick(i); });
+            b.addEventListener("click", function (e) { pause(); pick(i); if (onTap && e.isTrusted) onTap(i); });
             b.addEventListener("mouseenter", function () { if (!playing) pick(i); });
             b.addEventListener("focus", function () { if (!playing) pick(i); });
           });
           return pick;
         }
-        var pickArea = picker(".wx-areas"), pickPill = picker(".wx-found");
+        /* second screen: each capability tile gives a short buzz when clicked */
+        function tileSound() {
+          var ctx = sfx();
+          if (!ctx) return;
+          haptic(60);
+          var out = ctx.createGain(); out.gain.value = 0.8; out.connect(ctx.destination);
+          buzz(ctx, ctx.currentTime + 0.01, 0.12, 0.55, out);
+        }
+        var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found");
         var found = $(".wx-found"), pills = $$(".wx-pill", found), foundDetail = $(".wx-detail", found);
         pills.forEach(function (b, i) { b.style.setProperty("--i", i); b.style.setProperty("--dl", (0.45 + i * 0.08) + "s"); });
         function resetFound() {
