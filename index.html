@@ -793,18 +793,16 @@
       .hw-fx .flow-arrow path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .45s ease; transition-delay: var(--ad, 0s); }
       .hw-fx.is-in .flow-step { opacity: 1; transform: none; }
       .hw-fx.is-in .flow-arrow path { stroke-dashoffset: 0; }
-      .hw-fx .flow li:nth-child(1) { --d: .1s;  --ad: .45s; }
-      .hw-fx .flow li:nth-child(2) { --d: .55s; --ad: .9s; }
-      .hw-fx .flow li:nth-child(3) { --d: 1s;   --ad: 1.35s; }
-      .hw-fx .flow li:nth-child(4) { --d: 1.45s; }
+      /* all four bubbles appear together, at the same moment the gold glow starts */
+      .hw-fx .flow li { --d: 0s; --ad: .2s; }
 
       /* closing line: phrases light up in turn with a gold underline */
       .together-close span { transition: color .6s ease; }
       .hw-fx .together-close span { color: var(--muted); }
       .hw-fx.is-in .together-close span { color: var(--ink); }
-      .hw-fx.is-in .together-close span:nth-child(1) { transition-delay: 2s; }
-      .hw-fx.is-in .together-close span:nth-child(2) { transition-delay: 2.5s; }
-      .hw-fx.is-in .together-close span:nth-child(3) { transition-delay: 3s; }
+      .hw-fx.is-in .together-close span:nth-child(1) { transition-delay: .3s; }
+      .hw-fx.is-in .together-close span:nth-child(2) { transition-delay: .6s; }
+      .hw-fx.is-in .together-close span:nth-child(3) { transition-delay: .9s; }
 
       @media (prefers-reduced-motion: reduce) {
         .hw-fx .flow-step, .hw-fx .flow-arrow path, .together-close span, .flow-icon, .flow-icon::after { transition: none !important; animation: none !important; }
@@ -1818,10 +1816,10 @@
           if (visible && !started) {
             started = true;
             box.classList.add("is-in");
-            setTimeout(function () { tick(); play(); }, 2200);
+            tick(); play();
           } else if (visible && started) { play(); }
           else { stop(); }
-        }, { threshold: 0.35 }).observe(box);
+        }, { threshold: 0.15 }).observe(box);
         document.addEventListener("visibilitychange", function () { document.hidden ? stop() : play(); });
       })();
     </script>
