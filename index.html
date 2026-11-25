@@ -1631,20 +1631,50 @@
         });
         connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
 
-        /* A battle horn, sounded as the pieces land in Worklynq. Made on the fly with Web Audio (no sound
+        /* A bowstring twang on the click, then a battle horn as the pieces land in Worklynq. Made on the fly with Web Audio (no sound
            file). Respects the section's mute button and reduce-motion; phones in silent mode stay silent. */
         var actx = null;
-        function cheer() {
+        /* one shared audio context; null when the section is muted, motion is reduced or audio is unavailable */
+        function sfx() {
           var isMuted = false;
           try { isMuted = localStorage.getItem("wx-muted") === "1"; } catch (err) {}
-          if (isMuted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          if (isMuted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
           var AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
+          if (!AC) return null;
           try {
             actx = actx || new AC();
             if (actx.state === "suspended") actx.resume();
-          } catch (err) { return; }
-          var ctx = actx, beat = 60 / 122, t0 = ctx.currentTime + 0.95;
+          } catch (err) { return null; }
+          return actx;
+        }
+        /* a twang: a plucked string (Karplus-Strong), with a little pitch drop for that "twaang" */
+        var twangCache = {};
+        function twang(ctx, t, hz, amp, dest, len) {
+          len = len || 1.6;
+          var key = hz + ":" + len, buf = twangCache[key];
+          if (!buf) {
+            var sr = ctx.sampleRate, n = Math.floor(sr * len), period = Math.max(2, Math.round(sr / hz));
+            buf = ctx.createBuffer(1, n, sr);
+            var d = buf.getChannelData(0), ring = new Float32Array(period), k;
+            for (k = 0; k < period; k++) ring[k] = Math.random() * 2 - 1;
+            for (k = 0; k < n; k++) {
+              var idx = k % period, nxt = (k + 1) % period;
+              d[k] = ring[idx];
+              ring[idx] = 0.996 * (0.62 * ring[idx] + 0.38 * ring[nxt]);   /* bright, slowly damped */
+            }
+            twangCache[key] = buf;
+          }
+          var src = ctx.createBufferSource(), g = ctx.createGain(), body = ctx.createBiquadFilter();
+          src.buffer = buf;
+          src.playbackRate.setValueAtTime(1.06, t); src.playbackRate.exponentialRampToValueAtTime(1, t + 0.12);
+          body.type = "peaking"; body.frequency.value = 1900; body.Q.value = 2; body.gain.value = 7;   /* the nasal "twang" */
+          g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+          src.connect(body); body.connect(g); g.connect(dest); src.start(t); src.stop(t + len);
+        }
+        function cheer() {
+          var ctx = sfx();
+          if (!ctx) return;
+          var beat = 60 / 122, t0 = ctx.currentTime + 0.95;
 
           /* master: gentle compression, plus a soft echo on a dotted eighth */
           var master = ctx.createGain(); master.gain.value = 0.72;
@@ -1655,6 +1685,10 @@
           var wet = ctx.createGain(); wet.gain.value = 0.28;
           var dlp = ctx.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 1400;
           delay.connect(dlp); dlp.connect(fb); fb.connect(delay); dlp.connect(wet); wet.connect(master);
+
+          /* a bowstring twang the moment they click, as the pieces start to fly in */
+          twang(ctx, ctx.currentTime + 0.02, 98, 0.9, master, 1.4);
+          twang(ctx, ctx.currentTime + 0.02, 196, 0.35, master, 0.9);
 
           /* A battle horn as the pieces land in Worklynq: a deep brass call that scoops up into
              its first note, swells, then climbs a fifth for the second note, and echoes away. */
@@ -1707,20 +1741,28 @@
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
-        function picker(sel) {
+        function picker(sel, onTap) {
           var scene = $(sel), items = $$("[data-detail]", scene), detail = $(".wx-detail", scene);
           function pick(i) {
             items.forEach(function (o, j) { o.classList.toggle("is-on", j === i); o.setAttribute("aria-pressed", j === i ? "true" : "false"); });
             detail.textContent = items[i].getAttribute("data-detail");
           }
           items.forEach(function (b, i) {
-            b.addEventListener("click", function () { pause(); pick(i); });
+            b.addEventListener("click", function (e) { pause(); pick(i); if (onTap && e.isTrusted) onTap(i); });
             b.addEventListener("mouseenter", function () { if (!playing) pick(i); });
             b.addEventListener("focus", function () { if (!playing) pick(i); });
           });
           return pick;
         }
-        var pickArea = picker(".wx-areas"), pickPill = picker(".wx-found");
+        /* second screen: each capability tile plucks its own note (F minor: F, A-flat, C, E-flat) */
+        var tileNotes = [174.61, 207.65, 261.63, 311.13];
+        function tileSound(i) {
+          var ctx = sfx();
+          if (!ctx) return;
+          var out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+          twang(ctx, ctx.currentTime + 0.01, tileNotes[i % tileNotes.length], 0.8, out, 1.3);
+        }
+        var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found");
         var found = $(".wx-found"), pills = $$(".wx-pill", found), foundDetail = $(".wx-detail", found);
         pills.forEach(function (b, i) { b.style.setProperty("--i", i); b.style.setProperty("--dl", (0.45 + i * 0.08) + "s"); });
         function resetFound() {
