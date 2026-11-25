@@ -1631,9 +1631,10 @@
         });
         connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
 
-        /* A happy chime and a round of applause, made on the fly with Web Audio (no sound file).
-           Timed to land as the pieces snap into Worklynq. Respects the section's mute button
-           and reduce-motion; phones in silent mode stay silent. */
+        /* A deep-house "hmmm": a soft kick and a warm, filtered minor-9th chord that swells as the
+           pieces snap into Worklynq, a low hummed voice under it, and one echoing stab on the
+           off-beat (122 BPM, like the section's music). Made on the fly with Web Audio (no sound
+           file). Respects the section's mute button and reduce-motion; phones in silent mode stay silent. */
         var actx = null;
         function cheer() {
           var isMuted = false;
@@ -1645,33 +1646,64 @@
             actx = actx || new AC();
             if (actx.state === "suspended") actx.resume();
           } catch (err) { return; }
-          var now = actx.currentTime, out = actx.createGain();
-          out.gain.value = 1.0; out.connect(actx.destination);
+          var ctx = actx, beat = 60 / 122, t0 = ctx.currentTime + 0.95;
 
-          /* chime: a bright rising arpeggio as Worklynq lands */
-          [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
-            var t = now + 0.95 + i * 0.075, o = actx.createOscillator(), g = actx.createGain();
-            o.type = "triangle"; o.frequency.value = f;
+          /* master: gentle compression, plus a soft echo on a dotted eighth */
+          var master = ctx.createGain(); master.gain.value = 0.9;
+          var comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+          master.connect(comp); comp.connect(ctx.destination);
+          var delay = ctx.createDelay(1); delay.delayTime.value = beat * 0.75;
+          var fb = ctx.createGain(); fb.gain.value = 0.32;
+          var wet = ctx.createGain(); wet.gain.value = 0.28;
+          var dlp = ctx.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 1400;
+          delay.connect(dlp); dlp.connect(fb); fb.connect(delay); dlp.connect(wet); wet.connect(master);
+
+          /* soft kick on the landing */
+          var ko = ctx.createOscillator(), kg = ctx.createGain();
+          ko.type = "sine";
+          ko.frequency.setValueAtTime(115, t0); ko.frequency.exponentialRampToValueAtTime(42, t0 + 0.28);
+          kg.gain.setValueAtTime(0.0001, t0); kg.gain.exponentialRampToValueAtTime(0.75, t0 + 0.008);
+          kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+          ko.connect(kg); kg.connect(master); ko.start(t0); ko.stop(t0 + 0.5);
+
+          /* the chord: Fm9 voiced warm and low, detuned saws through a lowpass that opens and closes */
+          var chord = [87.31, 207.65, 261.63, 311.13, 392.0];   /* F2, Ab3, C4, Eb4, G4 */
+          function stab(t, len, peak, open) {
+            var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.Q.value = 6;
+            f.frequency.setValueAtTime(220, t);
+            f.frequency.exponentialRampToValueAtTime(open, t + len * 0.35);
+            f.frequency.exponentialRampToValueAtTime(260, t + len);
+            var g = ctx.createGain();
             g.gain.setValueAtTime(0.0001, t);
-            g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-            o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.65);
-          });
-
-          /* applause: lots of short, slightly different claps that swell and fade */
-          var len = Math.floor(actx.sampleRate * 0.05), noise = actx.createBuffer(1, len, actx.sampleRate), d = noise.getChannelData(0);
-          for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3);
-          var start = now + 1.0, dur = 2.6, claps = 230;
-          for (var c = 0; c < claps; c++) {
-            var u = Math.random(), t = start + Math.pow(u, 1.25) * dur;
-            var env = Math.sin(Math.PI * Math.min(1, (t - start) / dur * 1.15)) || 0.05;   /* swell, then fade */
-            var src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g2 = actx.createGain();
-            src.buffer = noise; src.playbackRate.value = 0.8 + Math.random() * 0.6;
-            bp.type = "bandpass"; bp.frequency.value = 900 + Math.random() * 1700; bp.Q.value = 0.9 + Math.random() * 0.8;
-            g2.gain.value = (0.18 + Math.random() * 0.22) * env;
-            src.connect(bp); bp.connect(g2); g2.connect(out);
-            src.start(t);
+            g.gain.exponentialRampToValueAtTime(peak, t + 0.12);
+            g.gain.setValueAtTime(peak, t + len * 0.45);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+            f.connect(g); g.connect(master); g.connect(delay);
+            chord.forEach(function (hz) {
+              [-7, 7].forEach(function (cents) {
+                var o = ctx.createOscillator(); o.type = "sawtooth";
+                o.frequency.value = hz; o.detune.value = cents;
+                var v = ctx.createGain(); v.gain.value = hz < 100 ? 0.11 : 0.06;
+                o.connect(v); v.connect(f); o.start(t); o.stop(t + len + 0.05);
+              });
+            });
           }
+          stab(t0, 2.4, 0.5, 1500);                 /* the long, swelling hmmm */
+          stab(t0 + beat * 1.5, 0.55, 0.22, 1100);  /* one answering stab on the off-beat */
+
+          /* a hummed, voice-like "mmm" on F3, shaped by a nasal formant, with a little vibrato */
+          var hum = ctx.createOscillator(), hg = ctx.createGain(), nasal = ctx.createBiquadFilter(), body = ctx.createBiquadFilter();
+          hum.type = "sawtooth"; hum.frequency.value = 174.61;
+          var vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5; vg.gain.value = 3;
+          vib.connect(vg); vg.connect(hum.frequency);
+          nasal.type = "bandpass"; nasal.frequency.value = 270; nasal.Q.value = 3;
+          body.type = "lowpass"; body.frequency.value = 600;
+          hg.gain.setValueAtTime(0.0001, t0 + 0.05);
+          hg.gain.exponentialRampToValueAtTime(0.35, t0 + 0.4);
+          hg.gain.setValueAtTime(0.35, t0 + 1.3);
+          hg.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.3);
+          hum.connect(nasal); nasal.connect(body); body.connect(hg); hg.connect(master); hg.connect(delay);
+          hum.start(t0); vib.start(t0); hum.stop(t0 + 2.4); vib.stop(t0 + 2.4);
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
