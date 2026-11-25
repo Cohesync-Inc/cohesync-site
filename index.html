@@ -1695,13 +1695,41 @@
           });
           return pick;
         }
-        /* second screen: each capability tile gives a short buzz when clicked */
-        function tileSound() {
+        /* second screen: each capability tile plays a different drum (kick, snare, tom, hi-hat) */
+        var noiseCache = null;
+        function noise(ctx) {
+          if (noiseCache) return noiseCache;
+          var n = Math.floor(ctx.sampleRate * 0.5), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+          for (var k = 0; k < n; k++) d[k] = Math.random() * 2 - 1;
+          return (noiseCache = buf);
+        }
+        function env(ctx, t, peak, len) {
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+          return g;
+        }
+        function tone(ctx, t, from, to, bendLen, peak, len, out) {
+          var o = ctx.createOscillator(), g = env(ctx, t, peak, len);
+          o.type = "sine"; o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + bendLen);
+          o.connect(g); g.connect(out); o.start(t); o.stop(t + len + 0.02);
+        }
+        function hiss(ctx, t, type, freq, q, peak, len, out) {
+          var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = env(ctx, t, peak, len);
+          src.buffer = noise(ctx); f.type = type; f.frequency.value = freq; f.Q.value = q;
+          src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + len + 0.02);
+        }
+        var drums = [
+          function kick(ctx, t, out) { tone(ctx, t, 150, 45, 0.12, 1.0, 0.45, out); hiss(ctx, t, "highpass", 3000, 0.7, 0.05, 0.015, out); },
+          function snare(ctx, t, out) { tone(ctx, t, 230, 180, 0.08, 0.45, 0.14, out); hiss(ctx, t, "bandpass", 3200, 0.8, 0.6, 0.2, out); },
+          function tom(ctx, t, out) { tone(ctx, t, 180, 105, 0.25, 0.85, 0.4, out); hiss(ctx, t, "bandpass", 900, 1.2, 0.08, 0.05, out); },
+          function hat(ctx, t, out) { hiss(ctx, t, "highpass", 7000, 0.8, 0.85, 0.08, out); }
+        ];
+        function tileSound(i) {
           var ctx = sfx();
           if (!ctx) return;
-          haptic(60);
-          var out = ctx.createGain(); out.gain.value = 0.8; out.connect(ctx.destination);
-          buzz(ctx, ctx.currentTime + 0.01, 0.12, 0.55, out);
+          var out = ctx.createGain(); out.gain.value = 0.7; out.connect(ctx.destination);
+          drums[i % drums.length](ctx, ctx.currentTime + 0.005, out);
         }
         var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found");
         var found = $(".wx-found"), pills = $$(".wx-pill", found), foundDetail = $(".wx-detail", found);
