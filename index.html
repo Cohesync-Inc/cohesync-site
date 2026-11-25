@@ -1937,12 +1937,25 @@
             }, { passive: true });
           }
         }
+        var heroPhoto = phone ? document.querySelector(".hero-photo") : null;
+        var statEls = document.querySelectorAll(".stats > div"), lastStat = phone ? statEls[statEls.length - 1] : null;
+        var photoInView = false, statsShownAt = 0, photoTimer = 0;
+        function maybeShowPhoto() {
+          if (!heroPhoto || !photoInView || !statsShownAt || photoTimer) return;
+          photoTimer = setTimeout(function () { heroPhoto.classList.add("is-in"); }, Math.max(0, statsShownAt - Date.now()));
+        }
         var io = new IntersectionObserver(function (entries) {
           entries.forEach(function (e) {
             if (!e.isIntersecting) return;
             var el = e.target;
-            el.classList.add("is-in");
             io.unobserve(el);
+            /* phones: the hero photo waits until the three stats have appeared */
+            if (el === heroPhoto) { photoInView = true; maybeShowPhoto(); return; }
+            el.classList.add("is-in");
+            if (el === lastStat) {
+              statsShownAt = Date.now() + ((parseFloat(el.style.getPropertyValue("--d")) || 0) + 0.6) * 1000;
+              maybeShowPhoto();
+            }
             /* once revealed, drop the reveal transition so hover effects respond instantly */
             if (el.classList.contains("rv")) {
               var d = parseFloat(el.style.getPropertyValue("--d")) || 0;
