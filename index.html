@@ -1691,8 +1691,13 @@
           }
           items.forEach(function (b, i) {
             b.addEventListener("click", function (e) { pause(); pick(i); if (onTap && e.isTrusted) onTap(i); });
-            b.addEventListener("mouseenter", function () { if (!playing) pick(i); });
-            b.addEventListener("focus", function () { if (!playing) pick(i); });
+            /* hover-to-preview with a real mouse only: on iPhones a hover change swallows the first tap's click (and its sound) */
+            b.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse" && !playing) pick(i); });
+            /* keyboard focus previews too; a tap's focus must not, or the layout shifts under the finger and the click is lost */
+            b.addEventListener("focus", function () {
+              var kb = true; try { kb = b.matches(":focus-visible"); } catch (err) {}
+              if (kb && !playing) pick(i);
+            });
           });
           return pick;
         }
