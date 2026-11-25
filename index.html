@@ -633,7 +633,11 @@
       .wx-col h4 { margin: 0 0 12px; font-family: var(--wx-serif); font-weight: 600; font-size: 21px; color: var(--wx-deep); }
       .wx-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
       .wx-col li { background: #fff; border: 1px solid var(--wx-line); border-radius: 999px; padding: 6px 13px; font-size: 15px; }
-      .wx-plus { font-family: var(--wx-serif); font-size: 40px; color: var(--wx-teal); justify-self: center; }
+      .wx-plus { font-family: var(--wx-serif); font-size: 40px; color: var(--wx-teal); justify-self: center;
+        background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      .wx-plus:hover span { box-shadow: 0 0 0 6px rgba(47, 174, 142, .18); }
+      .wx-plus.is-strum span { animation: wx-strum .45s cubic-bezier(.3, 1.6, .5, 1); }
+      @keyframes wx-strum { 0% { scale: 1; } 30% { scale: 1.22; } 60% { scale: .94; } 100% { scale: 1; } }
 
       /* 5. Get started */
       .wx-cta { justify-content: center; background: var(--wx-paper); --wx-glyph: var(--wx-paper); }
@@ -1202,7 +1206,7 @@
                     <h4>People bring</h4>
                     <ul><li>Judgment</li><li>Creativity</li><li>Relationships</li><li>Strategic thinking</li><li>Accountability</li></ul>
                   </div>
-                  <div class="wx-plus" aria-hidden="true"><span>+</span></div>
+                  <button type="button" class="wx-plus" aria-label="Strum a guitar chord"><span aria-hidden="true">+</span></button>
                   <div class="wx-col wx-col-ai">
                     <h4>AI brings</h4>
                     <ul><li>Scale &amp; speed</li><li>Persistent memory</li><li>Pattern recognition</li><li>Continuous assistance</li><li>Reasoning across context</li></ul>
@@ -1762,6 +1766,53 @@
           if (!ctx) return;
           var out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
           piano(ctx, ctx.currentTime + 0.005, pianoNotes[i % pianoNotes.length], out);
+        }
+        /* fourth screen: the "+" strums a guitar chord, a new one each click
+           (F minor, D-flat, E-flat, C minor: a loop that fits the section's music) */
+        var guitarCache = {};
+        function guitarString(ctx, hz) {
+          var key = hz.toFixed(2);
+          if (guitarCache[key]) return guitarCache[key];
+          var sr = ctx.sampleRate, n = Math.floor(sr * 2.6), period = Math.max(2, Math.round(sr / hz));
+          var buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0), ring = new Float32Array(period), k, prev = 0;
+          for (k = 0; k < period; k++) { var w = Math.random() * 2 - 1; prev = 0.6 * prev + 0.4 * w; ring[k] = prev; }   /* a soft pick */
+          for (k = 0; k < n; k++) {
+            var idx = k % period, nxt = (k + 1) % period;
+            d[k] = ring[idx];
+            ring[idx] = 0.9975 * 0.5 * (ring[idx] + ring[nxt]);   /* a warm steel string that rings and slowly dulls */
+          }
+          return (guitarCache[key] = buf);
+        }
+        var chords = [
+          [87.31, 130.81, 174.61, 207.65, 261.63, 349.23],   /* F minor */
+          [69.30, 138.59, 174.61, 207.65, 277.18, 349.23],   /* D-flat */
+          [77.78, 116.54, 155.56, 196.00, 233.08, 311.13],   /* E-flat */
+          [65.41, 130.81, 196.00, 261.63, 311.13, 392.00]    /* C minor */
+        ];
+        var chordIdx = 0, plusBtn = $(".wx-plus");
+        function strum() {
+          var ctx = sfx();
+          if (!ctx) return;
+          var out = ctx.createGain(); out.gain.value = 1.2;
+          var body = ctx.createBiquadFilter(); body.type = "peaking"; body.frequency.value = 110; body.Q.value = 1.2; body.gain.value = 5;
+          var air = ctx.createBiquadFilter(); air.type = "peaking"; air.frequency.value = 2400; air.Q.value = 1; air.gain.value = 3;
+          var top = ctx.createBiquadFilter(); top.type = "lowpass"; top.frequency.value = 5000;
+          out.connect(body); body.connect(air); air.connect(top); top.connect(ctx.destination);
+          var chord = chords[chordIdx++ % chords.length], t = ctx.currentTime + 0.01;
+          chord.forEach(function (hz, i) {                       /* a downstroke: low string first, 22 ms apart */
+            var src = ctx.createBufferSource(), g = ctx.createGain();
+            src.buffer = guitarString(ctx, hz);
+            g.gain.value = 0.22 * (i ? 1 : 0.85);
+            src.connect(g); g.connect(out); src.start(t + i * 0.022);
+          });
+        }
+        if (plusBtn) {
+          plusBtn.addEventListener("click", function (e) {
+            pause();
+            plusBtn.classList.remove("is-strum"); void plusBtn.offsetWidth; plusBtn.classList.add("is-strum");
+            if (e.isTrusted) strum();
+          });
+          plusBtn.addEventListener("animationend", function () { plusBtn.classList.remove("is-strum"); });
         }
         var pickArea = picker(".wx-areas", tileSound), pickPill = picker(".wx-found", pillSound);
         var found = $(".wx-found"), pills = $$(".wx-pill", found), foundDetail = $(".wx-detail", found);
