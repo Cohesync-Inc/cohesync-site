@@ -585,6 +585,13 @@
       .wx-connect.is-connected .wx-chips li { left: var(--rx); top: var(--ry); animation: none; }
       .wx-connect.is-connected .wx-lines line { stroke-dashoffset: 0; }
       .wx-connect.is-connected .wx-hub { transform: none; opacity: 1; }
+      /* "Connect them" clicked: Worklynq does a happy little hop as the pieces arrive */
+      .wx-connect.is-happy .wx-hub { animation: wx-happy 1.1s cubic-bezier(.3, 1.4, .5, 1) 1s, wx-happy-ring 1.4s ease-out 1s; }
+      @keyframes wx-happy {
+        0% { scale: 1; rotate: 0deg; } 18% { scale: 1.16; rotate: -7deg; } 36% { scale: .96; rotate: 6deg; }
+        54% { scale: 1.08; rotate: -3deg; } 72% { scale: .99; rotate: 1deg; } 100% { scale: 1; rotate: 0deg; }
+      }
+      @keyframes wx-happy-ring { 0% { box-shadow: 0 0 0 14px rgba(31, 143, 118, .14); } 40% { box-shadow: 0 0 0 26px rgba(47, 174, 142, .28); } 100% { box-shadow: 0 0 0 14px rgba(31, 143, 118, .14); } }
       .wx-connect-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; row-gap: 12px; }
       .wx-connect-foot .wx-btn { margin-left: 20px; max-width: 240px; overflow: hidden; white-space: nowrap;
         transition: opacity .35s ease, max-width .5s ease .1s, margin .5s ease .1s, padding .5s ease .1s, border-width .5s ease .1s, filter .2s; }
@@ -1616,7 +1623,56 @@
           connectBtn.disabled = on;
           if (on) connectBtn.setAttribute("aria-hidden", "true"); else connectBtn.removeAttribute("aria-hidden");
         }
-        connectBtn.addEventListener("click", function () { pause(); setConnected(true); });
+        connectBtn.addEventListener("click", function (e) {
+          pause(); setConnected(true);
+          if (!e.isTrusted) return;                       /* only for a real visitor's click */
+          connect.classList.remove("is-happy"); void connect.offsetWidth; connect.classList.add("is-happy");
+          cheer();
+        });
+        connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
+
+        /* A happy chime and a round of applause, made on the fly with Web Audio (no sound file).
+           Timed to land as the pieces snap into Worklynq. Respects the section's mute button
+           and reduce-motion; phones in silent mode stay silent. */
+        var actx = null;
+        function cheer() {
+          var isMuted = false;
+          try { isMuted = localStorage.getItem("wx-muted") === "1"; } catch (err) {}
+          if (isMuted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          try {
+            actx = actx || new AC();
+            if (actx.state === "suspended") actx.resume();
+          } catch (err) { return; }
+          var now = actx.currentTime, out = actx.createGain();
+          out.gain.value = 1.0; out.connect(actx.destination);
+
+          /* chime: a bright rising arpeggio as Worklynq lands */
+          [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+            var t = now + 0.95 + i * 0.075, o = actx.createOscillator(), g = actx.createGain();
+            o.type = "triangle"; o.frequency.value = f;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+            o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.65);
+          });
+
+          /* applause: lots of short, slightly different claps that swell and fade */
+          var len = Math.floor(actx.sampleRate * 0.05), noise = actx.createBuffer(1, len, actx.sampleRate), d = noise.getChannelData(0);
+          for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3);
+          var start = now + 1.0, dur = 2.6, claps = 230;
+          for (var c = 0; c < claps; c++) {
+            var u = Math.random(), t = start + Math.pow(u, 1.25) * dur;
+            var env = Math.sin(Math.PI * Math.min(1, (t - start) / dur * 1.15)) || 0.05;   /* swell, then fade */
+            var src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g2 = actx.createGain();
+            src.buffer = noise; src.playbackRate.value = 0.8 + Math.random() * 0.6;
+            bp.type = "bandpass"; bp.frequency.value = 900 + Math.random() * 1700; bp.Q.value = 0.9 + Math.random() * 0.8;
+            g2.gain.value = (0.18 + Math.random() * 0.22) * env;
+            src.connect(bp); bp.connect(g2); g2.connect(out);
+            src.start(t);
+          }
+        }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
         function picker(sel) {
