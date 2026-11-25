@@ -639,11 +639,11 @@
       .wx-plus { position: relative; z-index: 2; }   /* above both cards, so the rings are never hidden */
       .wx-plus::before, .wx-plus::after {
         content: ""; position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
-        border-radius: 50%; border: 2.5px solid var(--wx-teal); opacity: 0; pointer-events: none;
+        border-radius: 50%; border: 1.5px solid var(--wx-teal); opacity: 0; pointer-events: none;
       }
       .wx-plus.is-ringing::before { animation: wx-wave 1.8s ease-out infinite; }
       .wx-plus.is-ringing::after { animation: wx-wave 1.8s ease-out .9s infinite; }
-      @keyframes wx-wave { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2.4); } }
+      @keyframes wx-wave { 0% { opacity: .45; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
       .wx-plus.is-ringing:not(.is-strum) span { animation: wx-bell 2.6s ease-in-out 1s infinite; }
       @keyframes wx-bell { 0%, 70%, 100% { rotate: 0deg; } 76% { rotate: 16deg; } 82% { rotate: -13deg; } 88% { rotate: 8deg; } 94% { rotate: -4deg; } }
       @media (prefers-reduced-motion: reduce) { .wx-plus::before, .wx-plus::after, .wx-plus span { animation: none !important; } }
@@ -1684,14 +1684,24 @@
         function haptic(pattern) {
           if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (err) {} }
         }
+        /* schedule sounds only once audio is really running: on a phone's first tap the audio
+           starts a moment later, and notes timed before that can be cut off */
+        function whenRunning(ctx, fn) {
+          if (ctx.state === "running") { fn(); return; }
+          var done = false, go = function () { if (!done) { done = true; fn(); } };
+          try { var p = ctx.resume(); if (p && p.then) p.then(go, go); } catch (err) {}
+          setTimeout(go, 300);   /* never wait longer than this */
+        }
         function cheer() {
           var ctx = sfx();
           if (!ctx) return;
           haptic([0, 950, 180, 90, 300]);   /* buzz-buzz as the pieces land */
-          var t0 = ctx.currentTime + 0.95;
-          var out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
-          buzz(ctx, t0, 0.18, 0.6, out);
-          buzz(ctx, t0 + 0.27, 0.3, 0.6, out);
+          whenRunning(ctx, function () {
+            var t0 = ctx.currentTime + 0.95;
+            var out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+            buzz(ctx, t0, 0.18, 0.6, out);
+            buzz(ctx, t0 + 0.27, 0.3, 0.6, out);
+          });
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
@@ -1746,8 +1756,10 @@
         function tileSound(i) {
           var ctx = sfx();
           if (!ctx) return;
-          var out = ctx.createGain(); out.gain.value = 0.7; out.connect(ctx.destination);
-          drums[i % drums.length](ctx, ctx.currentTime + 0.005, out);
+          whenRunning(ctx, function () {
+            var out = ctx.createGain(); out.gain.value = 0.7; out.connect(ctx.destination);
+            drums[i % drums.length](ctx, ctx.currentTime + 0.005, out);
+          });
         }
         /* third screen: each building-block pill plays a piano note, jumping between low and high
            across two octaves of the F minor pentatonic (F A-flat B-flat C E-flat), so any order sounds
@@ -1778,8 +1790,10 @@
         function pillSound(i) {
           var ctx = sfx();
           if (!ctx) return;
-          var out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
-          piano(ctx, ctx.currentTime + 0.005, pianoNotes[i % pianoNotes.length], out);
+          whenRunning(ctx, function () {
+            var out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+            piano(ctx, ctx.currentTime + 0.005, pianoNotes[i % pianoNotes.length], out);
+          });
         }
         /* fourth screen: the "+" strums a guitar chord, a new one each click
            (F minor, D-flat, E-flat, C minor: a loop that fits the section's music) */
@@ -1812,16 +1826,29 @@
           var air = ctx.createBiquadFilter(); air.type = "peaking"; air.frequency.value = 2400; air.Q.value = 1; air.gain.value = 3;
           var top = ctx.createBiquadFilter(); top.type = "lowpass"; top.frequency.value = 5000;
           out.connect(body); body.connect(air); air.connect(top); top.connect(ctx.destination);
-          var chord = chords[chordIdx++ % chords.length], t = ctx.currentTime + 0.01;
-          chord.forEach(function (hz, i) {                       /* a downstroke: low string first, 22 ms apart */
-            var src = ctx.createBufferSource(), g = ctx.createGain();
-            src.buffer = guitarString(ctx, hz);
-            g.gain.value = 0.22 * (i ? 1 : 0.85);
-            src.connect(g); g.connect(out); src.start(t + i * 0.022);
+          var chord = chords[chordIdx++ % chords.length];
+          var strings = chord.map(function (hz) { return guitarString(ctx, hz); });   /* build the strings first... */
+          var rootUp = guitarString(ctx, chord[0] * 2);   /* the bass string an octave up, so phone speakers hear the first note */
+          whenRunning(ctx, function () {                                            /* ...then time the strum */
+            var t = ctx.currentTime + 0.03;
+            strings.forEach(function (buf, i) {                    /* a downstroke: low string first, 22 ms apart */
+              var src = ctx.createBufferSource(), g = ctx.createGain();
+              src.buffer = buf;
+              g.gain.value = 0.22 * (i ? 1 : 0.85);
+              src.connect(g); g.connect(out); src.start(t + i * 0.022);
+            });
+            var up = ctx.createBufferSource(), ug = ctx.createGain();
+            up.buffer = rootUp; ug.gain.value = 0.11; up.connect(ug); ug.connect(out); up.start(t);
           });
           return true;
         }
         if (plusBtn) {
+          /* get the first chord's strings ready the moment a finger or mouse goes down */
+          plusBtn.addEventListener("pointerdown", function () {
+            var ctx = sfx(); if (!ctx) return;
+            var c = chords[chordIdx % chords.length];
+            c.forEach(function (hz) { guitarString(ctx, hz); }); guitarString(ctx, c[0] * 2);
+          });
           plusBtn.addEventListener("click", function (e) {
             pause();
             plusBtn.classList.remove("is-strum"); void plusBtn.offsetWidth; plusBtn.classList.add("is-strum");
