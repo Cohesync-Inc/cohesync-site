@@ -1731,9 +1731,11 @@
           var out = ctx.createGain(); out.gain.value = 0.7; out.connect(ctx.destination);
           drums[i % drums.length](ctx, ctx.currentTime + 0.005, out);
         }
-        /* third screen: each building-block pill plays a piano note, rising through F minor
-           (F G A-flat B-flat C D-flat E-flat), so clicking along the row plays a scale */
-        var pianoNotes = [349.23, 392.0, 415.3, 466.16, 523.25, 554.37, 622.25, 698.46];
+        /* third screen: each building-block pill plays a piano note, jumping between low and high
+           across two octaves of the F minor pentatonic (F A-flat B-flat C E-flat), so any order sounds
+           good and the row is playful rather than a plain scale:
+           low F, high C, low A-flat, high F, low B-flat, high E-flat, middle C */
+        var pianoNotes = [174.61, 523.25, 207.65, 698.46, 233.08, 622.25, 261.63];
         function piano(ctx, t, hz, out) {
           var len = 2.2, B = 0.00035;                       /* string stiffness: slightly stretched overtones */
           var note = ctx.createGain(); note.gain.value = 1; note.connect(out);
