@@ -299,11 +299,8 @@
         }
         .fx .hero .btn-row.is-in .btn-gold::after { animation: hero-sweep 1.1s ease 1.7s; }
         @keyframes hero-sweep { to { left: 130%; } }
-        /* photo: opens from the middle like a window, then drifts gently as you scroll */
-        .fx .hero-photo { overflow: hidden; border-radius: 16px; }
-        .fx .hero-photo img { clip-path: inset(14% 14% 14% 14% round 24px); opacity: 0; transform: scale(1.12) translateY(var(--py, 0px)); transition: clip-path 1.3s cubic-bezier(.6, 0, .2, 1) .15s, opacity .6s ease .15s, transform 2.4s cubic-bezier(.2, .8, .2, 1) .15s; }
-        .fx .hero-photo.is-in img { clip-path: inset(0 0 0 0 round 16px); opacity: 1; transform: scale(1.06) translateY(var(--py, 0px)); }
-        .fx .hero-photo.is-settled img { transition: none; }
+        /* photo: fades in as you scroll down to it (once the stats have appeared); it never moves */
+        .fx .hero-photo img { opacity: var(--po, 0); transition: opacity .5s ease; }
       }
 
       /* mission cards: icons draw in; hover lifts with a gold edge */
@@ -2052,20 +2049,18 @@
               }, 1300);
             }, { threshold: 0.3 }).observe(year);
           }
-          /* hero photo: drifts a few pixels as you scroll past it */
+          /* hero photo: fades in with the scroll. Fully clear once its top is about halfway up the screen. */
           var photo = document.querySelector(".hero-photo"), pimg = photo && photo.querySelector("img"), ticking = false;
           if (photo && pimg) {
-            setTimeout(function () { photo.classList.add("is-settled"); }, 2800);
-            window.addEventListener("scroll", function () {
-              if (ticking) return; ticking = true;
-              requestAnimationFrame(function () {
-                ticking = false;
-                var r = photo.getBoundingClientRect();
-                if (r.bottom < 0 || r.top > window.innerHeight) return;
-                var k = (r.top + r.height / 2 - window.innerHeight / 2) / window.innerHeight;
-                pimg.style.setProperty("--py", (k * -18).toFixed(1) + "px");
-              });
-            }, { passive: true });
+            var fade = function () {
+              ticking = false;
+              var vh = window.innerHeight, top = photo.getBoundingClientRect().top;
+              var k = Math.max(0, Math.min(1, (vh - top) / (vh * 0.5)));
+              pimg.style.setProperty("--po", k.toFixed(3));
+            };
+            fade();
+            window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(fade); } }, { passive: true });
+            window.addEventListener("resize", fade);
           }
         }
         var heroPhoto = phone ? document.querySelector(".hero-photo") : null;
