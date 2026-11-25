@@ -1631,8 +1631,8 @@
         });
         connect.addEventListener("animationend", function (e) { if (e.animationName === "wx-happy") connect.classList.remove("is-happy"); });
 
-        /* A growing deep-house hum: a hummed "mmm", a sub and a warm minor-9th chord that swell
-           from the click until the pieces land in Worklynq, then fade (122 BPM, like the section's music). Made on the fly with Web Audio (no sound
+        /* A bar of deep house with a solid bassline, starting as the pieces land in Worklynq
+           (122 BPM, like the section's music). Made on the fly with Web Audio (no sound
            file). Respects the section's mute button and reduce-motion; phones in silent mode stay silent. */
         var actx = null;
         function cheer() {
@@ -1648,7 +1648,7 @@
           var ctx = actx, beat = 60 / 122, t0 = ctx.currentTime + 0.95;
 
           /* master: gentle compression, plus a soft echo on a dotted eighth */
-          var master = ctx.createGain(); master.gain.value = 0.9;
+          var master = ctx.createGain(); master.gain.value = 0.72;
           var comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
           master.connect(comp); comp.connect(ctx.destination);
           var delay = ctx.createDelay(1); delay.delayTime.value = beat * 0.75;
@@ -1657,63 +1657,69 @@
           var dlp = ctx.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 1400;
           delay.connect(dlp); dlp.connect(fb); fb.connect(delay); dlp.connect(wet); wet.connect(master);
 
-          /* A growing hum: starts quietly the moment they click, swells and opens up as the pieces
-             fly in, peaks just after they land in Worklynq (with a soft kick), then fades. */
-          var start = ctx.currentTime + 0.03, land = t0, peakAt = t0 + 0.6, end = t0 + 2.5;
-          function swell(param, from, to) {
-            param.setValueAtTime(from, start);
-            param.linearRampToValueAtTime(to, peakAt);   /* an even, steady build */
-            param.setValueAtTime(to, peakAt + 0.35);
-            param.exponentialRampToValueAtTime(0.0001, end);
+          /* One bar of deep house as the pieces land in Worklynq: four punchy kicks, a solid
+             saturated bassline (so it's felt on laptops and phones too, not just big speakers),
+             and warm chord stabs on the off-beats. */
+          var bar = t0;
+
+          /* saturation, so the bass has harmonics small speakers can play */
+          var shaper = ctx.createWaveShaper(), curve = new Float32Array(1024);
+          for (var i = 0; i < 1024; i++) { var x = i / 511.5 - 1; curve[i] = Math.tanh(x * 2.6); }
+          shaper.curve = curve;
+          var bassBus = ctx.createGain(); bassBus.gain.value = 1;
+          var bassLp = ctx.createBiquadFilter(); bassLp.type = "lowpass"; bassLp.frequency.value = 420; bassLp.Q.value = 1.2;
+          bassBus.connect(shaper); shaper.connect(bassLp); bassLp.connect(master);
+
+          /* kick: four on the floor, a firm thump with a tiny click on top */
+          function kick(t, amp) {
+            var o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = "sine";
+            o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+            o.frequency.exponentialRampToValueAtTime(40, t + 0.4);
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(amp, t + 0.004);
+            g.gain.exponentialRampToValueAtTime(amp * 0.5, t + 0.12);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.45);
+            var c = ctx.createOscillator(), cg = ctx.createGain();
+            c.type = "square"; c.frequency.value = 1800;
+            cg.gain.setValueAtTime(0.06 * amp, t); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
+            c.connect(cg); cg.connect(master); c.start(t); c.stop(t + 0.02);
           }
+          for (var k = 0; k < 4; k++) kick(bar + k * beat, k === 0 ? 1 : 0.85);
 
-          /* the hummed "mmm" on F3, nasal at first and opening up as it grows, vibrato deepening */
-          var hum = ctx.createOscillator(), hg = ctx.createGain(), nasal = ctx.createBiquadFilter(), body = ctx.createBiquadFilter();
-          hum.type = "sawtooth"; hum.frequency.value = 174.61;
-          var vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5;
-          vg.gain.setValueAtTime(0.5, start); vg.gain.linearRampToValueAtTime(4, peakAt);
-          vib.connect(vg); vg.connect(hum.frequency);
-          nasal.type = "bandpass"; nasal.Q.value = 2.5;
-          nasal.frequency.setValueAtTime(240, start); nasal.frequency.exponentialRampToValueAtTime(420, peakAt);
-          body.type = "lowpass";
-          body.frequency.setValueAtTime(380, start); body.frequency.exponentialRampToValueAtTime(1100, peakAt);
-          body.frequency.exponentialRampToValueAtTime(500, end);
-          swell(hg.gain, 0.03, 0.42);
-          hum.connect(nasal); nasal.connect(body); body.connect(hg); hg.connect(master); hg.connect(delay);
-
-          /* a sub hum an octave below, for weight */
-          var sub = ctx.createOscillator(), sg = ctx.createGain();
-          sub.type = "sine"; sub.frequency.value = 87.31;
-          swell(sg.gain, 0.02, 0.32);
-          sub.connect(sg); sg.connect(master);
-
-          /* the deep-house chord (Fm9: F2 Ab3 C4 Eb4 G4) grows underneath, its filter opening as it swells */
-          var chord = [87.31, 207.65, 261.63, 311.13, 392.0];
-          var cf = ctx.createBiquadFilter(), cg = ctx.createGain();
-          cf.type = "lowpass"; cf.Q.value = 5;
-          cf.frequency.setValueAtTime(160, start);
-          cf.frequency.exponentialRampToValueAtTime(1700, peakAt);
-          cf.frequency.exponentialRampToValueAtTime(240, end);
-          swell(cg.gain, 0.02, 0.42);
-          cf.connect(cg); cg.connect(master); cg.connect(delay);
-          var oscs = [hum, vib, sub];
-          chord.forEach(function (hz) {
-            [-7, 7].forEach(function (cents) {
-              var o = ctx.createOscillator(); o.type = "sawtooth";
-              o.frequency.value = hz; o.detune.value = cents;
-              var v = ctx.createGain(); v.gain.value = hz < 100 ? 0.11 : 0.06;
-              o.connect(v); v.connect(cf); oscs.push(o);
+          /* bassline in F minor: [beat offset, length in beats, frequency] */
+          var line = [[0.5, 0.45, 43.65], [1.5, 0.45, 43.65], [2.25, 0.2, 51.91], [2.5, 0.45, 65.41], [3.5, 0.9, 43.65]];
+          line.forEach(function (n) {
+            var t = bar + n[0] * beat, len = n[1] * beat;
+            var g = ctx.createGain();
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.012);
+            g.gain.setValueAtTime(0.55, t + len * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.06);
+            g.connect(bassBus);
+            [["sine", 1, 1], ["sawtooth", 1, 0.35], ["sine", 2, 0.3]].forEach(function (v) {
+              var o = ctx.createOscillator(), vg = ctx.createGain();
+              o.type = v[0]; o.frequency.value = n[2] * v[1]; vg.gain.value = v[2];
+              o.connect(vg); vg.connect(g); o.start(t); o.stop(t + len + 0.1);
             });
           });
-          oscs.forEach(function (o) { o.start(start); o.stop(end + 0.1); });
 
-          /* soft kick as the pieces land */
-          var ko = ctx.createOscillator(), kg = ctx.createGain();
-          ko.type = "sine";
-          ko.frequency.setValueAtTime(115, land); ko.frequency.exponentialRampToValueAtTime(42, land + 0.28);
-          kg.gain.setValueAtTime(0.0001, land); kg.gain.exponentialRampToValueAtTime(0.7, land + 0.008);
-          kg.gain.exponentialRampToValueAtTime(0.0001, land + 0.45);
-          ko.connect(kg); kg.connect(master); ko.start(land); ko.stop(land + 0.5);
+          /* warm Fm9 stabs on the off-beats of 2 and 4, with the echo */
+          var chord = [174.61, 207.65, 261.63, 311.13, 392.0];   /* F3 Ab3 C4 Eb4 G4 */
+          [1.5, 3.5].forEach(function (b, idx) {
+            var t = bar + b * beat, len = 0.28;
+            var f = ctx.createBiquadFilter(), g = ctx.createGain();
+            f.type = "lowpass"; f.Q.value = 4;
+            f.frequency.setValueAtTime(2200, t); f.frequency.exponentialRampToValueAtTime(500, t + len);
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+            f.connect(g); g.connect(master); g.connect(delay);
+            chord.forEach(function (hz) {
+              [-8, 8].forEach(function (cents) {
+                var o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = hz; o.detune.value = cents;
+                var v = ctx.createGain(); v.gain.value = 0.07;
+                o.connect(v); v.connect(f); o.start(t); o.stop(t + len + 0.05);
+              });
+            });
+          });
         }
 
         /* ---------- scenes 2 & 3: pick an item, show its detail ---------- */
