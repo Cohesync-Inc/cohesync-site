@@ -156,6 +156,10 @@
       .brand .mark { position: relative; display: block; margin-right: 2px; }
       .brand .tm { position: absolute; top: -4px; right: -9px; font-family: var(--display); font-size: 10px; font-weight: 700; line-height: 1; }
       .brand img { width: 40px; height: 40px; display: block; }
+      /* click the puzzle mark: it spins fast (two and a half turns) and settles with a little bounce */
+      .brand .mark img.is-spinning { animation: mark-spin .9s cubic-bezier(.15, .7, .25, 1.12); }
+      @keyframes mark-spin { from { transform: rotate(0deg); } to { transform: rotate(900deg); } }
+      @media (prefers-reduced-motion: reduce) { .brand .mark img.is-spinning { animation: none; } }
       .brand span {
         font-family: var(--display);
         font-weight: 800;
@@ -2191,6 +2195,17 @@
         }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
         watch.forEach(function (el) { io.observe(el); });
         root.classList.add("fx-ready");
+      })();
+    </script>
+    <script>
+      /* the Cohesync puzzle mark spins fast when clicked (header and footer); the link still works */
+      (function () {
+        [].forEach.call(document.querySelectorAll(".brand .mark img"), function (img) {
+          img.closest(".brand").addEventListener("click", function () {
+            img.classList.remove("is-spinning"); void img.offsetWidth; img.classList.add("is-spinning");
+          });
+          img.addEventListener("animationend", function () { img.classList.remove("is-spinning"); });
+        });
       })();
     </script>
   </body>
