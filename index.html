@@ -167,6 +167,10 @@
       .brand .pz i:nth-child(3) { clip-path: inset(50% 50% 0 0);  --dx: -11px; --dy: 11px;  --r: 22deg; }
       .brand .pz i:nth-child(4) { clip-path: inset(50% 0 0 50%);  --dx: 11px;  --dy: 11px;  --r: -26deg; }
       .footer-brand .brand .pz i { border-radius: 4px; }
+      .footer-brand .brand .pz i:nth-child(1) { --dx: -22px; --dy: -20px; --r: -40deg; }
+      .footer-brand .brand .pz i:nth-child(2) { --dx: 22px;  --dy: -20px; --r: 36deg; }
+      .footer-brand .brand .pz i:nth-child(3) { --dx: -22px; --dy: 20px;  --r: 34deg; }
+      .footer-brand .brand .pz i:nth-child(4) { --dx: 22px;  --dy: 20px;  --r: -38deg; }
       .brand .mark.is-exploding img { visibility: hidden; }
       .brand .mark.is-exploding .pz { display: block; }
       .brand .mark.is-exploding .pz i { animation: pz-burst .75s cubic-bezier(.2, .9, .3, 1.25); }
@@ -2215,9 +2219,9 @@
       })();
     </script>
     <script>
-      /* The Cohesync puzzle mark, when clicked (header and footer): it spins fast with the
-         clicking of a prize wheel slowing down, then the four pieces burst apart with a pop and
-         snap back together. The link still works. Sounds are made in the browser (no files);
+      /* The Cohesync puzzle mark. Header: clicking spins it fast with the clicking of a prize wheel
+         slowing down (the link still goes to the top). Footer: clicking makes it explode: the four
+         pieces burst apart with a pop and snap back together (the page stays where it is). Sounds are made in the browser (no files);
          reduce-motion visitors get neither motion nor sound. */
       (function () {
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -2252,7 +2256,7 @@
           og.gain.setValueAtTime(amp * 0.5, t); og.gain.exponentialRampToValueAtTime(0.0001, t + len * 0.8);
           o.connect(og); og.connect(out); o.start(t); o.stop(t + len);
         }
-        function sounds() {
+        function wheelSound() {
           var c = audio(); if (!c) return;
           var t0 = c.currentTime + 0.02, out = c.createGain(); out.gain.value = 0.8; out.connect(c.destination);
           /* wheel: a tick every 45 degrees of the 900-degree spin, slowing down like the spin itself */
@@ -2260,8 +2264,12 @@
             var t = 0.9 * (1 - Math.pow(1 - k / 20, 1 / 3));
             click(c, t0 + t, 2600 + Math.random() * 400, 0.35, 0.03, out);
           }
+        }
+        function burstSound() {
+          var c = audio(); if (!c) return;
+          var out = c.createGain(); out.gain.value = 0.8; out.connect(c.destination);
           /* burst: a soft pop with a puff of air as the pieces fly apart */
-          var tb = t0 + 0.92, o = c.createOscillator(), g = c.createGain();
+          var tb = c.currentTime + 0.02, o = c.createOscillator(), g = c.createGain();
           o.type = "sine"; o.frequency.setValueAtTime(320, tb); o.frequency.exponentialRampToValueAtTime(70, tb + 0.18);
           g.gain.setValueAtTime(0.0001, tb); g.gain.exponentialRampToValueAtTime(0.7, tb + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, tb + 0.25);
           o.connect(g); g.connect(out); o.start(tb); o.stop(tb + 0.3);
@@ -2273,24 +2281,31 @@
           click(c, tb + 0.62, 1800, 0.5, 0.04, out);
           click(c, tb + 0.68, 2200, 0.35, 0.035, out);
         }
-        [].forEach.call(document.querySelectorAll(".brand .mark"), function (mark) {
-          var img = mark.querySelector("img");
+        /* header logo: spins with the wheel sound (and still goes to the top) */
+        var head = document.querySelector(".site-header .brand .mark img");
+        if (head) {
+          head.closest(".brand").addEventListener("click", function () {
+            head.classList.remove("is-spinning"); void head.offsetWidth; head.classList.add("is-spinning");
+            wheelSound();
+          });
+          head.addEventListener("animationend", function (e) { if (e.animationName === "mark-spin") head.classList.remove("is-spinning"); });
+        }
+        /* footer logo: stays put and explodes: the four pieces burst apart with a pop and snap back */
+        var foot = document.querySelector(".site-footer .brand .mark");
+        if (foot) {
+          var img = foot.querySelector("img");
           var pz = document.createElement("span"); pz.className = "pz"; pz.setAttribute("aria-hidden", "true");
           pz.innerHTML = "<i></i><i></i><i></i><i></i>";
-          mark.insertBefore(pz, img.nextSibling);
+          foot.insertBefore(pz, img.nextSibling);
           var timer = 0;
-          mark.closest(".brand").addEventListener("click", function () {
+          foot.closest(".brand").addEventListener("click", function (e) {
+            e.preventDefault();                                     /* no jump back to the top */
             clearTimeout(timer);
-            mark.classList.remove("is-exploding");
-            img.classList.remove("is-spinning"); void img.offsetWidth; img.classList.add("is-spinning");
-            sounds();
-            timer = setTimeout(function () {
-              img.classList.remove("is-spinning");
-              mark.classList.add("is-exploding");
-              timer = setTimeout(function () { mark.classList.remove("is-exploding"); }, 780);
-            }, 900);
+            foot.classList.remove("is-exploding"); void foot.offsetWidth; foot.classList.add("is-exploding");
+            burstSound();
+            timer = setTimeout(function () { foot.classList.remove("is-exploding"); }, 780);
           });
-        });
+        }
       })();
     </script>
   </body>
