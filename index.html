@@ -159,7 +159,24 @@
       /* click the puzzle mark: it spins fast (two and a half turns) and settles with a little bounce */
       .brand .mark img.is-spinning { animation: mark-spin .9s cubic-bezier(.15, .7, .25, 1.12); }
       @keyframes mark-spin { from { transform: rotate(0deg); } to { transform: rotate(900deg); } }
-      @media (prefers-reduced-motion: reduce) { .brand .mark img.is-spinning { animation: none; } }
+      /* ...then the four pieces burst apart and snap back together */
+      .brand .pz { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 1; pointer-events: none; display: none; }
+      .brand .pz i { position: absolute; inset: 0; background: url("assets/cohesync-mark.png") center / 100% 100% no-repeat; border-radius: inherit; }
+      .brand .pz i:nth-child(1) { clip-path: inset(0 50% 50% 0);  --dx: -11px; --dy: -11px; --r: -28deg; }
+      .brand .pz i:nth-child(2) { clip-path: inset(0 0 50% 50%);  --dx: 11px;  --dy: -11px; --r: 24deg; }
+      .brand .pz i:nth-child(3) { clip-path: inset(50% 50% 0 0);  --dx: -11px; --dy: 11px;  --r: 22deg; }
+      .brand .pz i:nth-child(4) { clip-path: inset(50% 0 0 50%);  --dx: 11px;  --dy: 11px;  --r: -26deg; }
+      .footer-brand .brand .pz i { border-radius: 4px; }
+      .brand .mark.is-exploding img { visibility: hidden; }
+      .brand .mark.is-exploding .pz { display: block; }
+      .brand .mark.is-exploding .pz i { animation: pz-burst .75s cubic-bezier(.2, .9, .3, 1.25); }
+      @keyframes pz-burst {
+        0% { transform: none; }
+        30% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1.05); }
+        48% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1.05); }
+        100% { transform: none; }
+      }
+      @media (prefers-reduced-motion: reduce) { .brand .mark img.is-spinning, .brand .mark.is-exploding .pz i { animation: none; } }
       .brand span {
         font-family: var(--display);
         font-weight: 800;
@@ -2198,13 +2215,81 @@
       })();
     </script>
     <script>
-      /* the Cohesync puzzle mark spins fast when clicked (header and footer); the link still works */
+      /* The Cohesync puzzle mark, when clicked (header and footer): it spins fast with the
+         clicking of a prize wheel slowing down, then the four pieces burst apart with a pop and
+         snap back together. The link still works. Sounds are made in the browser (no files);
+         reduce-motion visitors get neither motion nor sound. */
       (function () {
-        [].forEach.call(document.querySelectorAll(".brand .mark img"), function (img) {
-          img.closest(".brand").addEventListener("click", function () {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        var ctx = null;
+        function audio() {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          try {
+            if (!ctx) {
+              ctx = new AC();
+              var b = ctx.createBuffer(1, 1, ctx.sampleRate), s = ctx.createBufferSource();   /* wake iPhone audio inside the tap */
+              s.buffer = b; s.connect(ctx.destination); s.start(0);
+            }
+            if (ctx.state !== "running" && ctx.resume) ctx.resume();
+          } catch (err) { return null; }
+          return ctx;
+        }
+        var noiseBuf = null;
+        function noise(c) {
+          if (noiseBuf) return noiseBuf;
+          var n = Math.floor(c.sampleRate * 0.3); noiseBuf = c.createBuffer(1, n, c.sampleRate);
+          var d = noiseBuf.getChannelData(0); for (var k = 0; k < n; k++) d[k] = Math.random() * 2 - 1;
+          return noiseBuf;
+        }
+        function click(c, t, freq, amp, len, out) {               /* a short "tick" of the wheel's pointer */
+          var src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+          src.buffer = noise(c); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 4;
+          g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+          src.connect(f); f.connect(g); g.connect(out); src.start(t, Math.random() * 0.2); src.stop(t + len + 0.01);
+          var o = c.createOscillator(), og = c.createGain();      /* plus a little wooden knock */
+          o.type = "triangle"; o.frequency.value = freq / 2.5;
+          og.gain.setValueAtTime(amp * 0.5, t); og.gain.exponentialRampToValueAtTime(0.0001, t + len * 0.8);
+          o.connect(og); og.connect(out); o.start(t); o.stop(t + len);
+        }
+        function sounds() {
+          var c = audio(); if (!c) return;
+          var t0 = c.currentTime + 0.02, out = c.createGain(); out.gain.value = 0.8; out.connect(c.destination);
+          /* wheel: a tick every 45 degrees of the 900-degree spin, slowing down like the spin itself */
+          for (var k = 1; k <= 20; k++) {
+            var t = 0.9 * (1 - Math.pow(1 - k / 20, 1 / 3));
+            click(c, t0 + t, 2600 + Math.random() * 400, 0.35, 0.03, out);
+          }
+          /* burst: a soft pop with a puff of air as the pieces fly apart */
+          var tb = t0 + 0.92, o = c.createOscillator(), g = c.createGain();
+          o.type = "sine"; o.frequency.setValueAtTime(320, tb); o.frequency.exponentialRampToValueAtTime(70, tb + 0.18);
+          g.gain.setValueAtTime(0.0001, tb); g.gain.exponentialRampToValueAtTime(0.7, tb + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, tb + 0.25);
+          o.connect(g); g.connect(out); o.start(tb); o.stop(tb + 0.3);
+          var air = c.createBufferSource(), af = c.createBiquadFilter(), ag = c.createGain();
+          air.buffer = noise(c); af.type = "lowpass"; af.frequency.setValueAtTime(3000, tb); af.frequency.exponentialRampToValueAtTime(400, tb + 0.25);
+          ag.gain.setValueAtTime(0.25, tb); ag.gain.exponentialRampToValueAtTime(0.0001, tb + 0.28);
+          air.connect(af); af.connect(ag); ag.connect(out); air.start(tb); air.stop(tb + 0.3);
+          /* snap: the pieces click back into place */
+          click(c, tb + 0.62, 1800, 0.5, 0.04, out);
+          click(c, tb + 0.68, 2200, 0.35, 0.035, out);
+        }
+        [].forEach.call(document.querySelectorAll(".brand .mark"), function (mark) {
+          var img = mark.querySelector("img");
+          var pz = document.createElement("span"); pz.className = "pz"; pz.setAttribute("aria-hidden", "true");
+          pz.innerHTML = "<i></i><i></i><i></i><i></i>";
+          mark.insertBefore(pz, img.nextSibling);
+          var timer = 0;
+          mark.closest(".brand").addEventListener("click", function () {
+            clearTimeout(timer);
+            mark.classList.remove("is-exploding");
             img.classList.remove("is-spinning"); void img.offsetWidth; img.classList.add("is-spinning");
+            sounds();
+            timer = setTimeout(function () {
+              img.classList.remove("is-spinning");
+              mark.classList.add("is-exploding");
+              timer = setTimeout(function () { mark.classList.remove("is-exploding"); }, 780);
+            }, 900);
           });
-          img.addEventListener("animationend", function () { img.classList.remove("is-spinning"); });
         });
       })();
     </script>
